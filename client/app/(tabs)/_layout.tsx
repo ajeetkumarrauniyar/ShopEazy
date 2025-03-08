@@ -15,6 +15,10 @@ const TabLayout = () => {
         headerTintColor: colors.headerTintColor,
         tabBarStyle: {
           backgroundColor: colors.backgroundColor,
+          // paddingBottom: 10,
+          // borderTopLeftRadius: 15,
+          // borderTopRightRadius: 15,
+          // height: 60,
         },
       }}
     >
