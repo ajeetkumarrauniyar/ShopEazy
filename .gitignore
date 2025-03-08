@@ -33,5 +33,7 @@ Thumbs.db
 # Other
 /client-old
 /server-old
+/server
+/client
 
 *.png
