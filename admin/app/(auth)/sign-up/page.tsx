@@ -3,14 +3,13 @@
 import React, { useState } from "react";
 import { useSignUp } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   Card,
   CardContent,
-  CardFooter,
+  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -21,23 +20,33 @@ const SignUp = () => {
   const { isLoaded, setActive, signUp } = useSignUp();
 
   const [phoneNumber, setPhoneNumber] = useState("");
-  const [pendingVerificationCode, setPendingVerificationCode] = useState(false);
   const [sentVerificationCode, setSentVerificationCode] = useState("");
-  const [isVerified, setIsVerified] = useState(false);
+  const [pendingVerification, setpendingVerification] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
   const router = useRouter();
 
   if (!isLoaded) {
-    return null;
-  } //TODO: Add a loader
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <p>Loading authentication system...</p>
+      </div>
+    );
+  }
 
   async function handleSignUp(e: React.FormEvent) {
     e.preventDefault();
+    setError("");
+    setIsLoading(true);
 
     if (!isLoaded) {
-      return null;
-    } //TODO: Add a loader
+      return (
+        <div className="flex items-center justify-center min-h-screen">
+          <p>Loading authentication system...</p>
+        </div>
+      );
+    }
 
     try {
       await signUp.create({
@@ -47,24 +56,33 @@ const SignUp = () => {
       await signUp.preparePhoneNumberVerification({
         strategy: "phone_code",
       });
-      setPendingVerificationCode(true);
+
+      setpendingVerification(true);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
-      console.log(JSON.stringify(error, null, 2));
-      setError(error.errors[0].message);
+      console.error("Sign up error:", JSON.stringify(error, null, 2));
+      setError(
+        error.errors?.[0]?.message || "An error occurred during sign up"
+      );
     }
   }
 
   async function handleVerification(e: React.FormEvent) {
     e.preventDefault();
+    setError("");
+    setIsLoading(true);
 
     if (!isLoaded) {
-      return null;
-    } //TODO: Add a loader
+      return (
+        <div className="flex items-center justify-center min-h-screen">
+          <p>Loading authentication system...</p>
+        </div>
+      );
+    }
 
     try {
       const completeSignUp = await signUp.attemptPhoneNumberVerification({
-        code,
+        code: sentVerificationCode,
       });
 
       if (completeSignUp.status !== "complete") {
@@ -74,42 +92,59 @@ const SignUp = () => {
       if (completeSignUp.status === "complete") {
         await setActive({ session: completeSignUp.createdSessionId });
         router.push("/dashboard"); //TODO: After login, where the user should be redirected to.
+      } else if (completeSignUp.status === "missing_requirements") {
+        // Handle missing requirements
+        setError("Additional information is required to complete sign up");
+      } else {
+        setError("Verification failed. Please check the code and try again.");
       }
+
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
-      console.log(JSON.stringify(error, null, 2));
-      setError(error.errors[0].message);
+      console.error("Verification error:", JSON.stringify(error, null, 2));
+      setError(error.errors?.[0]?.message || "Verification failed");
+    } finally {
+      setIsLoading(false);
     }
   }
 
   return (
     <>
-      <div>The current sign-up attempt status is {signUp?.status}.</div>
       <div className="flex items-center justify-center min-h-screen bg-background">
         <Card className="w-full max-w-md">
           <CardHeader>
             <CardTitle>Sign Up to ShopEazy</CardTitle>
+            <CardDescription>
+              {!pendingVerification
+                ? "Enter your phone number to create an account"
+                : "Enter the verification code sent to your phone"}
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            {!pendingVerificationCode ? (
+            {!pendingVerification ? (
               <form onSubmit={handleSignUp} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="email">Phone No.</Label>
                   <Input
                     type="tel"
                     id="phone"
+                    placeholder="+1234567890"
                     value={phoneNumber}
                     onChange={(e) => setPhoneNumber(e.target.value)}
                     required
+                    disabled={isLoading}
                   />
+                  <p className="text-sm text-muted-foreground">
+                    Include country code (e.g., +91 for IN)
+                  </p>
                 </div>
                 {error && (
                   <Alert variant="destructive">
                     <AlertDescription>{error}</AlertDescription>
                   </Alert>
                 )}
-                <Button type="submit" className="w-full">
-                  Sign Up
+                <Button type="submit" className="w-full" disabled={isLoading}>
+                  {isLoading ? "Sending Code..." : "Sign Up"}
                 </Button>
               </form>
             ) : (
@@ -119,6 +154,7 @@ const SignUp = () => {
                   <Input
                     type="text"
                     id="code"
+                    placeholder="123456"
                     value={sentVerificationCode}
                     onChange={(e) => setSentVerificationCode(e.target.value)}
                     required
@@ -130,22 +166,11 @@ const SignUp = () => {
                   </Alert>
                 )}
                 <Button type="submit" className="w-full">
-                  Verify
+                  Verify Code
                 </Button>
               </form>
             )}
           </CardContent>
-          <CardFooter className="justify-center">
-            <p className="text-sm text-muted-foreground">
-              Already have an account?
-              <Link
-                href="/sign-in"
-                className="font-medium text-primary hover:underline"
-              >
-                Sign in
-              </Link>
-            </p>
-          </CardFooter>
         </Card>
       </div>
     </>

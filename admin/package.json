@@ -6,7 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "prisma:dev": "npx prisma studio dev",
+    "primsa:migrate": "npx prisma migrate dev --name init",
+    "prisma:generate": "npx prisma generate"
   },
   "dependencies": {
     "@clerk/nextjs": "^6.12.4",
@@ -20,6 +23,7 @@
     "next": "15.2.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "svix": "^1.62.0",
     "tailwind-merge": "^3.0.2",
     "tailwindcss-animate": "^1.0.7"
   },
