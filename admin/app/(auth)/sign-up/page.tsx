@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import React, { useState } from "react";
@@ -20,7 +21,7 @@ const SignUp = () => {
   const { isLoaded, setActive, signUp } = useSignUp();
 
   const [phoneNumber, setPhoneNumber] = useState("");
-  const [sentVerificationCode, setSentVerificationCode] = useState("");
+  const [verificationCode, setVerificationCode] = useState("");
   const [pendingVerification, setpendingVerification] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
@@ -40,30 +41,23 @@ const SignUp = () => {
     setError("");
     setIsLoading(true);
 
-    if (!isLoaded) {
-      return (
-        <div className="flex items-center justify-center min-h-screen">
-          <p>Loading authentication system...</p>
-        </div>
-      );
-    }
-
     try {
-      await signUp.create({
+      await signUp!.create({
         phoneNumber,
       });
 
-      await signUp.preparePhoneNumberVerification({
+      await signUp!.preparePhoneNumberVerification({
         strategy: "phone_code",
       });
 
       setpendingVerification(true);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       console.error("Sign up error:", JSON.stringify(error, null, 2));
       setError(
         error.errors?.[0]?.message || "An error occurred during sign up"
       );
+    } finally {
+      setIsLoading(false);
     }
   }
 
@@ -72,17 +66,9 @@ const SignUp = () => {
     setError("");
     setIsLoading(true);
 
-    if (!isLoaded) {
-      return (
-        <div className="flex items-center justify-center min-h-screen">
-          <p>Loading authentication system...</p>
-        </div>
-      );
-    }
-
     try {
-      const completeSignUp = await signUp.attemptPhoneNumberVerification({
-        code: sentVerificationCode,
+      const completeSignUp = await signUp!.attemptPhoneNumberVerification({
+        code: verificationCode,
       });
 
       if (completeSignUp.status !== "complete") {
@@ -90,7 +76,7 @@ const SignUp = () => {
       } //TODO: Handle the case when staus is !== complete, i.e., SignUpStatus = 'missing_requirements' | 'complete' | 'abandoned';
 
       if (completeSignUp.status === "complete") {
-        await setActive({ session: completeSignUp.createdSessionId });
+        await setActive!({ session: completeSignUp.createdSessionId });
         router.push("/dashboard"); //TODO: After login, where the user should be redirected to.
       } else if (completeSignUp.status === "missing_requirements") {
         // Handle missing requirements
@@ -98,8 +84,6 @@ const SignUp = () => {
       } else {
         setError("Verification failed. Please check the code and try again.");
       }
-
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       console.error("Verification error:", JSON.stringify(error, null, 2));
       setError(error.errors?.[0]?.message || "Verification failed");
@@ -155,8 +139,8 @@ const SignUp = () => {
                     type="text"
                     id="code"
                     placeholder="123456"
-                    value={sentVerificationCode}
-                    onChange={(e) => setSentVerificationCode(e.target.value)}
+                    value={verificationCode}
+                    onChange={(e) => setVerificationCode(e.target.value)}
                     required
                   />
                 </div>
@@ -165,8 +149,8 @@ const SignUp = () => {
                     <AlertDescription>{error}</AlertDescription>
                   </Alert>
                 )}
-                <Button type="submit" className="w-full">
-                  Verify Code
+                <Button type="submit" className="w-full" disabled={isLoading}>
+                  {isLoading ? "Verifying..." : "Verify Code"}
                 </Button>
               </form>
             )}

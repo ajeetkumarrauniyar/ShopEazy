@@ -10,8 +10,8 @@ datasource db {
 model User {
   id                 String               @id @default(uuid())
   clerkId            String               @unique
-  phone              String               @unique
-  email              String?              @unique
+  phoneNumber        String               @unique
+  emailAddress       String?              @unique
   firstName          String?
   lastName           String?
   role               Role                 @default(USER)
