@@ -1,21 +1,24 @@
 {
+  "name": "monorepo",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "lint-staged": {
     "client/**/*.{js,jsx,ts,tsx}": [
       "cd client && npx eslint --fix",
       "cd client && npx prettier --write"
-    ],
-    "server/**/*.php": [
-      "cd server && phpcs"
     ]
   },
   "scripts": {
     "lint": "npm run lint:client && npm run lint:server",
     "lint:client": "cd client && npm run lint",
-    "lint:server": "cd server && phpcs",
     "prepare": "husky install"
   },
   "devDependencies": {
     "husky": "^8.0.3",
-    "lint-staged": "^15.4.3"
+    "lint-staged": "^15.4.3",
+    "turbo": "latest"
   }
 }
