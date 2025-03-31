@@ -1,0 +1,17 @@
+{
+  "name": "@omniledger/config",
+  "version": "1.0.0",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "outDir": "dist",
+  "rootDir": ".",
+  "sourceMap": true,
+  "inlineSourceMap": false,
+  "include": [
+    "./**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "**/*.test.ts"
+  ]
+}

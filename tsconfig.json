@@ -1,0 +1,28 @@
+{
+  "compilerOptions": {
+    "composite": true,
+    "declaration": true,
+    "declarationMap": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "inlineSources": false,
+    "sourceMap": true,
+    "isolatedModules": true,
+    "moduleResolution": "node",
+    // "paths": {
+    //   "@omniledger/database": ["./packages/database"],
+    //   "@omniledger/database/*": ["./packages/database/*"],
+    //   "@components/*": ["./packages/components/ui/*"]
+    // },
+    "skipLibCheck": true,
+    "strict": true
+  },
+  "exclude": ["node_modules"],
+  "references": [
+    { "path": "./apps/admin" },
+    { "path": "./apps/client" },
+    { "path": "./packages/database" },
+    { "path": "./packages/components" },
+    { "path": "./packages/config" }
+  ]
+}

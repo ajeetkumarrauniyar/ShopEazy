@@ -1,5 +1,6 @@
 {
   "$schema": "https://turbo.build/schema.json",
+  "globalDependencies": ["**/.env.*local"],
   "ui": "tui",
   "tasks": {
     "build": {
@@ -16,6 +17,15 @@
     "dev": {
       "cache": false,
       "persistent": true
+    },
+    "prisma:generate": {
+      "dependsOn": ["^build"],
+      "inputs": ["prisma/schema.prisma"],
+      "outputs": ["packages/database/generated/client/**"]
+    },
+    "prisma:migrate": {
+      "cache": false,
+      "inputs": ["prisma/schema.prisma", "prisma/migrations/**"]
     }
   }
 }

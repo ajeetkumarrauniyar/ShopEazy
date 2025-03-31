@@ -1,24 +1,32 @@
 {
-  "name": "fmcg-grocery-rn-expo-laravel-app",
+  "name": "omniledger",
   "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
-    "build": "turbo run build",
     "dev": "turbo run dev",
     "lint": "turbo run lint",
-    "format": "prettier --write \"**/*.{ts,tsx,md}\"",
-    "check-types": "turbo run check-types"
+    "build": "turbo run build",
+    "db:generate": "turbo run prisma:generate",
+    "db:migrate": "turbo run prisma:migrate"
   },
   "devDependencies": {
-    "prettier": "^3.5.3",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
     "turbo": "^2.4.4",
-    "typescript": "5.8.2"
+    "typescript": "^5.8.2"
   },
   "engines": {
     "node": ">=18"
   },
   "packageManager": "npm@10.9.2",
-  "workspaces": [
-    "apps/*",
-    "packages/*"
-  ]
+  "dependencies": {
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "lucide-react": "^0.486.0",
+    "tailwind-merge": "^3.0.2"
+  }
 }

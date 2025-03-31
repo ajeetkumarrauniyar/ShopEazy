@@ -1,38 +1,100 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+# =================================================
+# GLOBAL MONOREPO GITIGNORE
+# =================================================
 
-# Dependencies
-node_modules
-.pnp
-.pnp.js
+# --------------------------
+# DEPENDENCIES
+# --------------------------
+**/node_modules/
+**/.pnp
+.pnp.*
+**/.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+**/dist/
+**/build/
 
-# Local env files
+# --------------------------
+# DEVELOPMENT
+# --------------------------
 .env
 .env.local
-.env.development.local
-.env.test.local
-.env.production.local
+.env.*.local
+.env.development
+.env.test
+.env.production
 
-# Testing
-coverage
+# --------------------------
+# BUILD OUTPUTS
+# --------------------------
+**/.next/
+**/out/
+**/*.tsbuildinfo
+next-env.d.ts
 
-# Turbo
-.turbo
-
-# Vercel
-.vercel
-
-# Build Outputs
-.next/
-out/
-build
-dist
-
-
-# Debug
+# --------------------------
+# PACKAGE MANAGER
+# --------------------------
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+.pnpm-debug.log*
 
-# Misc
-.DS_Store
+# --------------------------
+# TESTING
+# --------------------------
+**/coverage/
+**/.nyc_output/
+
+# --------------------------
+# IDE & EDITOR
+# --------------------------
+**/.DS_Store
+**/.idea/
+**/.vscode/
+*.code-workspace
+*.swp
+*.bak
+*.tmp
+
+# --------------------------
+# PLATFORM SPECIFIC
+# --------------------------
+Thumbs.db
+ehthumbs.db
+[Dd]esktop.ini
+$RECYCLE.BIN/
 *.pem
+
+# --------------------------
+# FRAMEWORK SPECIFIC
+# --------------------------
+# Next.js/Vercel
+**/.vercel/
+
+# Clerk
+**/.clerk/
+
+# Expo/React Native
+**/.expo/
+**/web-build/
+**/ios/
+**/android/
+
+# Laravel/PHP
+**/vendor/
+**/bootstrap/cache/
+**/storage/*.key
+**/storage/framework/*
+!**/storage/framework/.gitkeep
+**/storage/logs/
+**/public/storage
+composer.lock
+
+# Prisma
+**/generated/
+**/.prisma/
+**/migrations/
+!**/migrations/ƒ
