@@ -9,11 +9,6 @@
     "sourceMap": true,
     "isolatedModules": true,
     "moduleResolution": "node",
-    // "paths": {
-    //   "@omniledger/database": ["./packages/database"],
-    //   "@omniledger/database/*": ["./packages/database/*"],
-    //   "@components/*": ["./packages/components/ui/*"]
-    // },
     "skipLibCheck": true,
     "strict": true
   },

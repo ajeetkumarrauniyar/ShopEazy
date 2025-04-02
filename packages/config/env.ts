@@ -1,5 +1,8 @@
+import dotenv from "dotenv";
 import path from "path";
-require("dotenv").config({ path: path.resolve(__dirname, "../../.env") });
+
+dotenv.config({ path: path.resolve(process.cwd(), ".env") });
+
 
 // Export needed variables
 export const DATABASE_URL = process.env.DATABASE_URL;

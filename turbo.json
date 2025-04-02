@@ -8,24 +8,16 @@
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
       "outputs": [".next/**", "!.next/cache/**"]
     },
-    "lint": {
-      "dependsOn": ["^lint"]
-    },
-    "check-types": {
-      "dependsOn": ["^check-types"]
-    },
     "dev": {
       "cache": false,
       "persistent": true
     },
-    "prisma:generate": {
-      "dependsOn": ["^build"],
-      "inputs": ["prisma/schema.prisma"],
-      "outputs": ["packages/database/generated/client/**"]
+    "lint": {
+      "outputs": []
     },
-    "prisma:migrate": {
-      "cache": false,
-      "inputs": ["prisma/schema.prisma", "prisma/migrations/**"]
+    "test": {
+      "dependsOn": ["build"],
+      "outputs": ["coverage/**"]
     }
   }
 }

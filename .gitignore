@@ -97,4 +97,12 @@ composer.lock
 **/generated/
 **/.prisma/
 **/migrations/
-!**/migrations/ƒ
+!**/migrations/
+
+# --------------------------
+# Turbo
+
+.turbo/cookies/**
+.turbo/daemon/c7cb7f1eec5bb18e-turbo.log.2025-04-01
+.turbo/preferences/tui.json
+packages/db/.turbo/turbo-build.log

@@ -1,3 +1,4 @@
+import "../../../packages/components/global.css"; 
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -7,7 +8,7 @@ import {
   CardContent,
   CardFooter,
 } from "@/components/ui/card";
-import { UserButton, SignInButton, SignedIn, SignedOut } from "@clerk/nextjs";
+// import { UserButton, SignInButton, SignedIn, SignedOut } from "@clerk/nextjs";
 
 export default function Home() {
   return (
@@ -20,16 +21,12 @@ export default function Home() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <SignedIn>
-            <p className="mb-4">You are signed in!</p>
-            <UserButton afterSignOutUrl="/" />
-          </SignedIn>
-          <SignedOut>
-            <p className="mb-4">Please sign in to continue</p>
-            <SignInButton>
-              <Button>Sign In</Button>
-            </SignInButton>
-          </SignedOut>
+          <p className="mb-4">You are signed in!</p>
+
+          <p className="mb-4">Please sign in to continue</p>
+
+          <Button>Sign In</Button>
+          {/* </SignInButton> */}
         </CardContent>
         <CardFooter>
           <p className="text-xs text-gray-500">
