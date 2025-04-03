@@ -1,36 +1,45 @@
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardContent,
-  CardFooter,
-} from "@/components/ui/card";
+import React from "react";
+import Header from "@/components/header";
+import HeroSection from "@/components/heroSection";
+import FeaturesSection from "@/components/featuresSection";
+import IndustrySolutions from "@/components/industrySolutions";
+import PlatformSection from "@/components/platform";
+import Integrations from "@/components/integrations";
+import Testimonials from "@/components/testimonials";
+import Pricing from "@/components/pricing";
+import FAQAccordion from "@/components/faq";
+import CTA from "@/components/cta";
+import Footer from "@/components/footer";
 
-export default function Home() {
+const App = () => {
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-24">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle>Welcome to My App</CardTitle>
-          <CardDescription>
-            A Turborepo monorepo with Next.js and Expo
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <p className="mb-4">You are signed in!</p>
+    <div className="antialiased text-gray-800 min-h-screen flex flex-col">
+      {/* Skip to main content link for accessibility */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-0 focus:left-0 focus:z-50 focus:p-4 focus:bg-white focus:text-black"
+      >
+        Skip to main content
+      </a>
 
-          <p className="mb-4">Please sign in to continue</p>
+      <Header />
 
-          <Button>Sign In</Button>
-        </CardContent>
-        <CardFooter>
-          <p className="text-xs text-gray-500">
-            Powered by Clerk, Neon, and Prisma
-          </p>
-        </CardFooter>
-      </Card>
-    </main>
+      {/* Main content area */}
+      <main id="main-content" className="flex-1 relative h-full pt-16">
+        <HeroSection />
+        <FeaturesSection />
+        <IndustrySolutions />
+        <PlatformSection />
+        <Integrations />
+        <Testimonials />
+        <Pricing />
+        <FAQAccordion />
+        <CTA />
+        <Footer />
+      </main>
+
+    </div>
   );
-}
+};
+
+export default App;
