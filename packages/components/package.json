@@ -1,8 +1,0 @@
-{
-  "name": "@packages/ui",
-  "version": "1.0.0",
-  "main": "./index.ts",
-  "devDependencies": {
-    "react": "^18.2.0"
-  }
-}
