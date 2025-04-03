@@ -6,8 +6,7 @@
       "@/*": ["./*"],
       "@/components/*": ["./components/*"],
       "@/lib/*": ["./lib/*"],
-      "@omniledger/database": ["../../packages/database"],
-      "@omniledger/database/*": ["../../packages/database/*"]
+      "@omniledger/database/*": ["../../packages/db/*"]
     },
     "jsx": "preserve",
     "moduleResolution": "node",
@@ -26,15 +25,16 @@
   },
   "references": [
     {
-      "path": "../../packages/database"
-    }
+      "path": "../../packages/db"
+    },
+    { "path": "../../packages/components" }
   ],
   "include": [
     "**/*.ts",
     "**/*.tsx",
     "next-env.d.ts",
     ".next/types/**/*.ts",
-    "../../packages/database/**/*.ts"
+    "../../packages/db/**/*.ts",
   ],
   "exclude": ["node_modules", "**/*.test.ts"]
 }

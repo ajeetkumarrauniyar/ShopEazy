@@ -10,14 +10,19 @@
     "isolatedModules": true,
     "moduleResolution": "node",
     "skipLibCheck": true,
-    "strict": true
+    "strict": true,
+    "baseUrl": ".",
+    "paths": {
+      "@omniledger/*": ["packages/*/src"],
+      "@/*": ["apps/admin/*"]
+    }
   },
   "exclude": ["node_modules"],
   "references": [
     { "path": "./apps/admin" },
     { "path": "./apps/client" },
-    { "path": "./packages/database" },
+    { "path": "./packages/db" },
     { "path": "./packages/components" },
-    { "path": "./packages/config" }
+    { "path": "./packages/config" },
   ]
 }
