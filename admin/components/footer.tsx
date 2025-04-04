@@ -3,9 +3,13 @@
 import React, { useEffect, useState } from "react";
 
 const Footer = () => {
-  const [isDarkMode, setIsDarkMode] = useState(() => {
-    return localStorage.getItem("color-theme") === "dark";
-  });
+  const [isDarkMode, setIsDarkMode] = useState(false); // Default value
+
+  useEffect(() => {
+    // Check localStorage after component mounts
+    const savedTheme = window.localStorage.getItem("color-theme");
+    setIsDarkMode(savedTheme === "dark");
+  }, []);
 
   useEffect(() => {
     if (isDarkMode) {
