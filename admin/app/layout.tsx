@@ -9,10 +9,6 @@ export const metadata: Metadata = {
     "Streamline your business with OmniLedger's integrated e-commerce and ERP solution. Customizable storefronts, multi-tenant admin panels, automated accounting, and real-time synced apps.",
   keywords:
     "OmniLedger, E-commerce, ERP, SaaS, multi-tenant, accounting, inventory management, customizable storefronts",
-
-  viewport:
-    "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no",
-  themeColor: "#ffffff",
 };
 
 export default function RootLayout({
