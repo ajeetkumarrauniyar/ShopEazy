@@ -1,10 +1,14 @@
 "use client";
 
+import { OrganizationSwitcher, useUser } from "@clerk/nextjs";
 import React, { useState, useEffect } from "react";
 
 const Header = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+
+  const { user, isLoaded } = useUser();
+  const [userData, setUserData] = useState(null);
 
   // Handle scroll effect for header
   useEffect(() => {
@@ -20,18 +24,30 @@ const Header = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
   };
 
+  useEffect(() => {
+    if (isLoaded && user) {
+      // Fetch additional user data from your database
+      // based on the Clerk ID that the webhook stored
+      fetch(`/api/users/${user.id}`)
+        .then((res) => res.json())
+        .then((data) => setUserData(data));
+    }
+  }, [isLoaded, user]);
+
+  if (!isLoaded) return <div>Loading...</div>;
+
   return (
     <section id="header">
       <nav
-        className={`bg-white dark:bg-neutral-900 fixed w-full z-50 ${
+        className={`fixed z-50 w-full bg-white dark:bg-neutral-900 ${
           isScrolled ? "shadow-md" : "shadow-sm"
         }`}
       >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="flex h-16 justify-between">
             {/* Logo */}
             <div className="flex items-center">
-              <a href="#" className="flex-shrink-0 flex items-center">
+              <a href="#" className="flex flex-shrink-0 items-center">
                 <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">
                   OmniLedger
                 </span>
@@ -42,46 +58,47 @@ const Header = () => {
             <div className="hidden md:ml-6 md:flex md:items-center md:space-x-4">
               <a
                 href="#features"
-                className="px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:text-blue-600 dark:text-gray-300 dark:hover:text-blue-400 transition"
+                className="rounded-md px-3 py-2 text-sm font-medium text-gray-700 transition hover:text-blue-600 dark:text-gray-300 dark:hover:text-blue-400"
               >
                 Features
               </a>
               <a
                 href="#solutions"
-                className="px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:text-blue-600 dark:text-gray-300 dark:hover:text-blue-400 transition"
+                className="rounded-md px-3 py-2 text-sm font-medium text-gray-700 transition hover:text-blue-600 dark:text-gray-300 dark:hover:text-blue-400"
               >
                 Solutions
               </a>
               <a
                 href="#platform"
-                className="px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:text-blue-600 dark:text-gray-300 dark:hover:text-blue-400 transition"
+                className="rounded-md px-3 py-2 text-sm font-medium text-gray-700 transition hover:text-blue-600 dark:text-gray-300 dark:hover:text-blue-400"
               >
                 Platform
               </a>
               <a
                 href="#pricing"
-                className="px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:text-blue-600 dark:text-gray-300 dark:hover:text-blue-400 transition"
+                className="rounded-md px-3 py-2 text-sm font-medium text-gray-700 transition hover:text-blue-600 dark:text-gray-300 dark:hover:text-blue-400"
               >
                 Pricing
               </a>
               <a
                 href="#faq"
-                className="px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:text-blue-600 dark:text-gray-300 dark:hover:text-blue-400 transition"
+                className="rounded-md px-3 py-2 text-sm font-medium text-gray-700 transition hover:text-blue-600 dark:text-gray-300 dark:hover:text-blue-400"
               >
                 FAQ
               </a>
               <a
                 href="#cta"
-                className="ml-2 px-4 py-2 rounded-md text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 transition"
+                className="ml-2 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-700"
               >
                 Contact
               </a>
               <a
                 href="/sign-in"
-                className="ml-2 px-4 py-2 rounded-md text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 transition"
+                className="ml-2 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-700"
               >
                 Sign In
               </a>
+              <h1 className="text-white text-2xl font-bold">Welcome, {user?.firstName}!</h1>
             </div>
 
             {/* Mobile menu button */}
@@ -89,7 +106,7 @@ const Header = () => {
               <button
                 onClick={toggleMobileMenu}
                 type="button"
-                className="inline-flex items-center justify-center p-2 rounded-md text-gray-700 dark:text-gray-400 hover:text-blue-600 hover:bg-gray-100 dark:hover:bg-neutral-800 dark:hover:text-blue-400 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500"
+                className="inline-flex items-center justify-center rounded-md p-2 text-gray-700 hover:bg-gray-100 hover:text-blue-600 focus:ring-2 focus:ring-blue-500 focus:outline-none focus:ring-inset dark:text-gray-400 dark:hover:bg-neutral-800 dark:hover:text-blue-400"
                 aria-controls="mobile-menu"
                 aria-expanded={isMobileMenuOpen}
               >
@@ -136,46 +153,46 @@ const Header = () => {
 
         {/* Mobile menu */}
         <div
-          className={`md:hidden bg-white dark:bg-neutral-900 shadow-md ${
+          className={`bg-white shadow-md md:hidden dark:bg-neutral-900 ${
             isMobileMenuOpen ? "block" : "hidden"
           }`}
           id="mobile-menu"
           aria-label="Mobile navigation"
         >
-          <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+          <div className="space-y-1 px-2 pt-2 pb-3 sm:px-3">
             <a
               href="#features"
-              className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:text-blue-400 dark:hover:bg-neutral-800 transition"
+              className="block rounded-md px-3 py-2 text-base font-medium text-gray-700 transition hover:bg-gray-100 hover:text-blue-600 dark:text-gray-300 dark:hover:bg-neutral-800 dark:hover:text-blue-400"
             >
               Features
             </a>
             <a
               href="#solutions"
-              className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:text-blue-400 dark:hover:bg-neutral-800 transition"
+              className="block rounded-md px-3 py-2 text-base font-medium text-gray-700 transition hover:bg-gray-100 hover:text-blue-600 dark:text-gray-300 dark:hover:bg-neutral-800 dark:hover:text-blue-400"
             >
               Solutions
             </a>
             <a
               href="#platform"
-              className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:text-blue-400 dark:hover:bg-neutral-800 transition"
+              className="block rounded-md px-3 py-2 text-base font-medium text-gray-700 transition hover:bg-gray-100 hover:text-blue-600 dark:text-gray-300 dark:hover:bg-neutral-800 dark:hover:text-blue-400"
             >
               Platform
             </a>
             <a
               href="#pricing"
-              className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:text-blue-400 dark:hover:bg-neutral-800 transition"
+              className="block rounded-md px-3 py-2 text-base font-medium text-gray-700 transition hover:bg-gray-100 hover:text-blue-600 dark:text-gray-300 dark:hover:bg-neutral-800 dark:hover:text-blue-400"
             >
               Pricing
             </a>
             <a
               href="#faq"
-              className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:text-blue-400 dark:hover:bg-neutral-800 transition"
+              className="block rounded-md px-3 py-2 text-base font-medium text-gray-700 transition hover:bg-gray-100 hover:text-blue-600 dark:text-gray-300 dark:hover:bg-neutral-800 dark:hover:text-blue-400"
             >
               FAQ
             </a>
             <a
               href="#cta"
-              className="block px-3 py-2 rounded-md text-base font-medium text-white bg-blue-600 hover:bg-blue-700 transition mt-4 mx-3"
+              className="mx-3 mt-4 block rounded-md bg-blue-600 px-3 py-2 text-base font-medium text-white transition hover:bg-blue-700"
             >
               Contact
             </a>
