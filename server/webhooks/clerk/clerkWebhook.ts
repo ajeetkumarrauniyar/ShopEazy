@@ -1,52 +1,67 @@
-import { service } from "@/services/webhookServices";
+import { service } from "@/services/clerkWebhookService";
 import { Webhook } from "svix";
+import { Request, Response } from "express";
+
+// This function verifies the webhook signature and processes the event
+// based on its type. It handles user creation, updates, deletions,
+// organization events, and role/permission events.
+// The function is designed to be used as an Express middleware.
+// It expects the request body to be in JSON format and the necessary
+// headers to be present for signature verification.
+
+/**
+ * Handle incoming webhook events from Clerk
+ * @param req - Express request object
+ * @param res - Express response object
+ */
 
 const handleWebhook = async (req: Request, res: Response) => {
   const SIGNING_SECRET = process.env.CLERK_WEBHOOK_SIGNING_SECRET;
 
   if (!SIGNING_SECRET) {
-    throw new Error(
-      "Error: Please add SIGNING_SECRET from Clerk Dashboard to .env"
+    console.error(
+      "Error: Missing CLERK_WEBHOOK_SIGNING_SECRET in environment variables. Please add SIGNING_SECRET from Clerk Dashboard to .env"
     );
-  }
-
-  // Create new Svix instance with secret
-  const wh = new Webhook(SIGNING_SECRET);
-
-  // Verify webhook signature
-  const headers = req.headers;
-  const svixId = headers.get("svix-id");
-  const svixTimestamp = headers.get("svix-timestamp");
-  const svixSignature = headers.get("svix-signature");
-
-  // If there are no headers, error out
-  if (!svixId || !svixTimestamp || !svixSignature) {
-    return new Response("Error: Missing required Svix headers", {
-      status: 400,
+    return res.status(500).json({
+      success: false,
+      error: "Server configuration error",
     });
   }
 
-  // Get body
-  const payload = await req.json();
-  const body = JSON.stringify(payload);
- 
- 
-  // Verify payload with the headers
   try {
-   evt=  wh.verify(body, {
+    // Create new Svix instance with secret for verification
+    const wh = new Webhook(SIGNING_SECRET);
+
+    // Get necessary headers for verification
+    const headers = req.headers;
+    const svixId = headers["svix-id"] as string;
+    const svixTimestamp = headers["svix-timestamp"] as string;
+    const svixSignature = headers["svix-signature"] as string;
+
+    // Verify required headers are present
+    if (!svixId || !svixTimestamp || !svixSignature) {
+      return res.status(400).json({
+        success: false,
+        error: "Missing required Svix headers",
+      });
+    }
+
+    // Get request body as string
+    const payload = req.body;
+    const body =
+      typeof payload === "string" ? payload : JSON.stringify(payload);
+
+    // Verify webhook signature
+    const evt = wh.verify(body, {
       "svix-id": svixId,
       "svix-timestamp": svixTimestamp,
       "svix-signature": svixSignature,
     });
-  } catch (err) {
-    console.error("Error: Could not verify webhook,:", err);
-    return new Response("Error: Invalid signature", { status: 400 });
-  }
 
-  // Process webhook event
-  const eventType = evt.type;
+    // Process webhook event based on its type
+    const eventType = evt.type;
+    console.log(`Processing webhook event: ${eventType}`);
 
-  try {
     switch (eventType) {
       case "user.created":
         await service.handleUserCreated(evt.data);
@@ -54,14 +69,15 @@ const handleWebhook = async (req: Request, res: Response) => {
 
       case "user.updated":
         // await service.handleUserUpdated(evt.data);
-        // console.log("User Updated", evt.data);
+        console.log("User Updated", evt.data);
         break;
 
       case "user.deleted":
         // await service.handleUserDeleted(evt.data);
-        // console.log("User Deleted", evt.data);
+        console.log("User Deleted", evt.data);
         break;
 
+      // Organization related events
       case "organization.created":
         // await service.handleOrganizationCreated(evt.data);
         // console.log("Organization Created", evt.data);
@@ -77,6 +93,7 @@ const handleWebhook = async (req: Request, res: Response) => {
         // console.log("Organization Deleted", evt.data);
         break;
 
+      // Organization invitation events
       case "organizationInvitation.created":
         // await service.handleOrganizationInvitationCreated(evt.data);
         // console.log("Organization Invitation Created", evt.data);
@@ -92,6 +109,7 @@ const handleWebhook = async (req: Request, res: Response) => {
         // console.log("Organization Invitation Revoked", evt.data);
         break;
 
+      // Organization membership events
       case "organizationMembership.created":
         // await service.handleOrganizationMembershipCreated(evt.data);
         // console.log("Organization Membership Created", evt.data);
@@ -107,6 +125,7 @@ const handleWebhook = async (req: Request, res: Response) => {
         // console.log("Organization Membership Deleted", evt.data);
         break;
 
+      // Organization domain events
       case "organizationDomain.created":
         // await service.handleOrganizationDomainCreated(evt.data);
         // console.log("Organization Domain Created", evt.data);
@@ -122,6 +141,7 @@ const handleWebhook = async (req: Request, res: Response) => {
         // console.log("Organization Domain Deleted", evt.data);
         break;
 
+      // Role events
       case "role.created":
         // await service.handleRoleCreated(evt.data);
         // console.log("Role Created", evt.data);
@@ -137,6 +157,7 @@ const handleWebhook = async (req: Request, res: Response) => {
         // console.log("Role Deleted", evt.data);
         break;
 
+      // Permission events
       case "permission.created":
         // await service.handlePermissionCreated(evt.data);
         // console.log("Permission Created", evt.data);
@@ -156,13 +177,13 @@ const handleWebhook = async (req: Request, res: Response) => {
         console.log(`Unhandled event type: ${eventType}`);
     }
 
-    return Response.json({ success: true });
-  } catch (error) {
-    console.error(`Error processing ${eventType}:`, error);
-    return Response.json(
-      { success: false, error: "Invalid webhook signature" },
-      { status: 500 }
-    );
+    res.status(200).json({ success: true });
+  } catch (err) {
+    console.error(`Error processing webhook:`, err);
+    return res.status(400).json({
+      success: false,
+      error: "Invalid webhook signature",
+    });
   }
 };
 
