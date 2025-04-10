@@ -13,13 +13,13 @@ class ClerkWebhookService {
         data: {
           clerkId: id,
           phoneNumber,
-          email,
-          firstName: first_name,
-          lastName: last_name,
+          emailAddress: email || undefined,
+          firstName: first_name || undefined,
+          lastName: last_name || undefined,
         },
       });
 
-      console.log("New user created via webhook:", user);
+      console.log(`✅ User created in DB with clerkId: ${id}`);
       return user;
     } catch (error) {
       console.error("Webhook Error: Failed to create user", error);

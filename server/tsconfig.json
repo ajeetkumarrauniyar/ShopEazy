@@ -1,20 +1,19 @@
 {
   "compilerOptions": {
-    "target": "ES2017",
-    "allowJs": true,
-    "skipLibCheck": true,
-    "strict": true,
-    "noEmit": true,
-    "esModuleInterop": false,
-    "module": "esnext",
-    "moduleResolution": "bundler",
+    "target": "ES2020",
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "esModuleInterop": true,
     "resolveJsonModule": true,
-    "isolatedModules": true,
+    "allowJs": false,
+    "strict": true,
+    "skipLibCheck": true,
+    "noEmit": true,
     "incremental": true,
     "paths": {
       "@/*": ["./*"]
     }
   },
-  "include": ["./**/*.ts", "config/clerkConfig.ts"],
+  "include": ["./**/*.ts"],
   "exclude": ["node_modules"]
 }

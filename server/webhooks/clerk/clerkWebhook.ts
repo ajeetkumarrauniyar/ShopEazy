@@ -1,13 +1,6 @@
-import { service } from "@/services/clerkWebhookService";
-import { Webhook } from "svix";
 import { Request, Response } from "express";
-
-// This function verifies the webhook signature and processes the event
-// based on its type. It handles user creation, updates, deletions,
-// organization events, and role/permission events.
-// The function is designed to be used as an Express middleware.
-// It expects the request body to be in JSON format and the necessary
-// headers to be present for signature verification.
+import { verifyClerkWebhook } from "@/utils/handleClerkWebhook";
+import { clerkWebhookService as service } from "@/services/clerkWebhookService";
 
 /**
  * Handle incoming webhook events from Clerk
@@ -27,54 +20,30 @@ const handleWebhook = async (req: Request, res: Response) => {
       error: "Server configuration error",
     });
   }
+  // Create new Svix instance with secret for verification
+  // const wh = new Webhook(SIGNING_SECRET);
 
   try {
-    // Create new Svix instance with secret for verification
-    const wh = new Webhook(SIGNING_SECRET);
-
-    // Get necessary headers for verification
-    const headers = req.headers;
-    const svixId = headers["svix-id"] as string;
-    const svixTimestamp = headers["svix-timestamp"] as string;
-    const svixSignature = headers["svix-signature"] as string;
-
-    // Verify required headers are present
-    if (!svixId || !svixTimestamp || !svixSignature) {
-      return res.status(400).json({
-        success: false,
-        error: "Missing required Svix headers",
-      });
-    }
-
-    // Get request body as string
-    const payload = req.body;
-    const body =
-      typeof payload === "string" ? payload : JSON.stringify(payload);
-
-    // Verify webhook signature
-    const evt = wh.verify(body, {
-      "svix-id": svixId,
-      "svix-timestamp": svixTimestamp,
-      "svix-signature": svixSignature,
-    });
-
     // Process webhook event based on its type
+    const evt = verifyClerkWebhook(req);
     const eventType = evt.type;
+
     console.log(`Processing webhook event: ${eventType}`);
 
     switch (eventType) {
+      // User related events
       case "user.created":
         await service.handleUserCreated(evt.data);
         break;
 
       case "user.updated":
         // await service.handleUserUpdated(evt.data);
-        console.log("User Updated", evt.data);
+        // console.log("User Updated", evt.data);
         break;
 
       case "user.deleted":
         // await service.handleUserDeleted(evt.data);
-        console.log("User Deleted", evt.data);
+        // console.log("User Deleted", evt.data);
         break;
 
       // Organization related events
@@ -177,9 +146,9 @@ const handleWebhook = async (req: Request, res: Response) => {
         console.log(`Unhandled event type: ${eventType}`);
     }
 
-    res.status(200).json({ success: true });
-  } catch (err) {
-    console.error(`Error processing webhook:`, err);
+    return res.status(200).json({ success: true });
+  } catch (error) {
+    console.error(`Error processing webhook:`, error);
     return res.status(400).json({
       success: false,
       error: "Invalid webhook signature",

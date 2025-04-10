@@ -3,10 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "main": "index.ts",
   "scripts": {
     "dev": "tsx watch index.ts",
     "start": "tsx index.ts",
-    "ngrok": "ngrok http --url=credible-seemingly-caribou.ngrok-free.app 5000",
     "prisma:generate": "npx prisma generate",
     "prisma:migrate": "npx prisma migrate dev --name init",
     "prisma:studio": "npx prisma studio",
