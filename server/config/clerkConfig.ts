@@ -1,4 +1,3 @@
-import { Response } from "express";
 import { createClerkClient } from "@clerk/express";
 
 const clerkClient = createClerkClient({

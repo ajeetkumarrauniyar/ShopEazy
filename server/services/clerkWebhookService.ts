@@ -1,31 +1,51 @@
-import { prisma } from "@/config/dbConfig";
+import { ClerkWebhookEvent } from "@/types/clerk";
+import type {
+  UserJSON,
+  OrganizationJSON,
+  SessionJSON,
+  // add more types as needed
+} from "@clerk/express";
+import { createUser } from "@/db";
 
-class ClerkWebhookService {
-  async handleUserCreated(data: any) {
-    try {
-      const { id, email_addresses, phone_numbers, first_name, last_name } =
-        data;
+export const handleClerkWebhookEvent = async (
+  evt: ClerkWebhookEvent
+): Promise<void> => {
+  const { type, data } = evt;
 
-      const phoneNumber = phone_numbers?.[0]?.phone_number || "";
-      const email = email_addresses?.[0]?.email_address || "";
+  console.log(`✅ Webhook received. ID: ${data.id} | Type: ${type}`);
 
-      const user = await prisma.user.create({
-        data: {
-          clerkId: id,
-          phoneNumber,
-          emailAddress: email || undefined,
-          firstName: first_name || undefined,
-          lastName: last_name || undefined,
-        },
-      });
-
-      console.log(`✅ User created in DB with clerkId: ${id}`);
-      return user;
-    } catch (error) {
-      console.error("Webhook Error: Failed to create user", error);
-      throw new Error("Webhook Error: User creation failed");
+  switch (type) {
+    case "user.created": {
+      const user = data as UserJSON;
+      console.log("👤 New user created:", user.id);
+      await createUser(user); // Save user to DB
+      break;
     }
-  }
-}
 
-export const clerkWebhookService = new ClerkWebhookService();
+    case "organization.created": {
+      const org = data as OrganizationJSON;
+      console.log("🏢 New organization created:", {
+        id: org.id,
+        name: org.name,
+        slug: org.slug,
+      });
+      // TODO: Save to org table
+      break;
+    }
+
+    case "session.created": {
+      const session = data as SessionJSON;
+      console.log("🧑‍💻 New session started:", {
+        id: session.id,
+        userId: session.user_id,
+        createdAt: session.created_at,
+      });
+      // TODO: Audit log or track session
+      break;
+    }
+
+    default:
+      console.log(`ℹ️ Unhandled event type: ${type}`);
+      break;
+  }
+};

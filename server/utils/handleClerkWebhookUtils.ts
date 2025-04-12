@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { Webhook } from "svix";
-import { WebhookEvent } from "@clerk/express";
 import { env } from "@/config/envConfig";
+import { ClerkWebhookEvent } from "@/types/clerk";
 
 /**
  * Verifies the incoming Clerk webhook request using Svix
@@ -10,20 +10,15 @@ import { env } from "@/config/envConfig";
  * @throws Error if verification fails or headers are missing
  */
 
-// server/utils/handleClerkWebhook.ts
-export const handleClerkWebhook = async (
+export const verifyClerkWebhook = async (
   req: Request,
   res: Response
-): Promise<void> => {
+): Promise<ClerkWebhookEvent> => {
   const SIGNING_SECRET = env.CLERK_WEBHOOK_SECRET;
 
   if (!SIGNING_SECRET) {
     console.error("❌ Missing SIGNING_SECRET in env");
-    res.status(500).json({
-      success: false,
-      message: "Server misconfiguration",
-    });
-    return;
+    throw new Error("Server misconfiguration: Missing webhook secret");
   }
 
   const svix = new Webhook(SIGNING_SECRET);
@@ -36,38 +31,22 @@ export const handleClerkWebhook = async (
   const svixSignature = headers["svix-signature"] as string;
 
   if (!svixId || !svixTimestamp || !svixSignature) {
-    res.status(400).json({
-      success: false,
-      message: "Missing required svix headers",
-    });
-    return;
+    console.error("❌ Missing required svix headers");
+    throw new Error("Missing required svix headers");
   }
 
-  let evt: WebhookEvent;
+  let evt: ClerkWebhookEvent;
 
   try {
     evt = svix.verify(payload, {
       "svix-id": svixId,
       "svix-timestamp": svixTimestamp,
       "svix-signature": svixSignature,
-    }) as WebhookEvent;
+    }) as ClerkWebhookEvent;
+
+    return evt;
   } catch (err) {
     console.error("❌ Webhook verification failed:", err);
-    res
-      .status(400)
-      .json({ success: false, message: "Invalid webhook signature" });
-    return;
+    throw new Error("Invalid webhook signature");
   }
-
-  const eventType = evt.type;
-  const user = evt.data;
-
-  if (eventType === "user.created") {
-    console.log("✅ Clerk user.created event received:", user.id);
-    // TODO: Call Supabase/Prisma/DB insert logic here
-  }
-
-  res
-    .status(200)
-    .json({ success: true, message: `Webhook received: ${eventType}` });
 };
