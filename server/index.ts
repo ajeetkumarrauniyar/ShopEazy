@@ -14,8 +14,7 @@ const port = env.PORT;
 app.use(cors());
 
 // Handle raw body for webhook verification
-app.use("/webhook", express.raw({ type: "application/json" }));
-
+app.use("/api/webhooks/clerk", express.raw({ type: "application/json" }));
 app.use(express.json());
 
 // app.use(express.urlencoded({ extended: true }));
@@ -39,15 +38,15 @@ app.get("/", async (req: Request, res: Response) => {
   }
 });
 
+// Webhook route
+app.use("/api/webhooks", clerkRouter);
+
 // Routes
 app.get("/health", async (req: Request, res: Response) => {
   res
     .status(200)
     .json({ status: "ok", message: "Server is running & Health is OK!!" });
 });
-
-// Webhook route
-app.post("/api/webhooks", clerkRouter);
 
 app.listen(port, () =>
   console.log(`🚀 Server running on http://localhost:${port}`)
