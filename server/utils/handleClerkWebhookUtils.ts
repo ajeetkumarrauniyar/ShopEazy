@@ -22,8 +22,8 @@ export const verifyClerkWebhook = async (
   }
 
   const svix = new Webhook(SIGNING_SECRET);
-  const payload =
-    typeof req.body === "string" ? req.body : JSON.stringify(req.body);
+
+  const payload = req.body instanceof Buffer ? req.body.toString('utf8') : JSON.stringify(req.body);  
   const headers = req.headers;
 
   const svixId = headers["svix-id"] as string;
@@ -43,7 +43,7 @@ export const verifyClerkWebhook = async (
       "svix-timestamp": svixTimestamp,
       "svix-signature": svixSignature,
     }) as ClerkWebhookEvent;
-
+    console.log("✅ Webhook verified successfully:", evt.type);
     return evt;
   } catch (err) {
     console.error("❌ Webhook verification failed:", err);

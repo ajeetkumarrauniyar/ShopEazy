@@ -7,16 +7,14 @@ export const clerkWebhookController = async (
   res: Response
 ): Promise<void> => {
   try {
-    const evt = await verifyClerkWebhook(req, res);
+    const evt = await verifyClerkWebhook(req, res);    
     await handleClerkWebhookEvent(evt);
     res.status(200).json({ success: true, message: `Handled ${evt.type}` });
   } catch (error) {
     console.error("Webhook Error:", error);
-    res
-      .status(400)
-      .json({
-        success: false,
-        message: (error as Error).message || "Unknown error occurred",
-      });
+    res.status(400).json({
+      success: false,
+      message: (error as Error).message || "Unknown error occurred",
+    });
   }
 };

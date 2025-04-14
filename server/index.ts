@@ -4,22 +4,10 @@ import { env } from "@/config/envConfig";
 import { clerkClient } from "@clerk/express";
 import clerkRouter from "@/routes/clerkWebhookRoutes";
 
-// import { authMiddleware } from "@/middlewares/authMiddleware";
-// import protectedRoutes from "@/routes/protectedRoutes";
-
 const app = express();
 const port = env.PORT;
 
 // Middlewares
-app.use(cors());
-
-// Handle raw body for webhook verification
-app.use("/api/webhooks/clerk", express.raw({ type: "application/json" }));
-app.use(express.json());
-
-// app.use(express.urlencoded({ extended: true }));
-// app.use(authMiddleware);
-
 app.use(
   cors({
     origin: process.env.NEXT_ADMIN_FRONTEND_URL || "http://localhost:3000",
@@ -27,19 +15,18 @@ app.use(
   })
 );
 
-// Routes
-app.get("/", async (req: Request, res: Response) => {
-  try {
-    const { data } = await clerkClient.users.getUserList();
-    res.status(200).json({ users: data });
-  } catch (error) {
-    console.error("Error fetching users:", error);
-    res.status(500).json({ error: "Internal Server Error" });
+// Handle raw body for webhook verification
+app.use("/api/webhooks/clerk", express.raw({ type: "application/json" }));
+
+app.use(function (req, res, next) {
+  if (req.originalUrl === "/api/webhooks/clerk") {
+    next();
+  } else {
+    express.json()(req, res, next);
   }
 });
 
-// Webhook route
-app.use("/api/webhooks", clerkRouter);
+app.use(express.urlencoded({ extended: true }));
 
 // Routes
 app.get("/health", async (req: Request, res: Response) => {
@@ -47,6 +34,9 @@ app.get("/health", async (req: Request, res: Response) => {
     .status(200)
     .json({ status: "ok", message: "Server is running & Health is OK!!" });
 });
+
+// Webhook route
+app.use("/api/webhooks/clerk", clerkRouter);
 
 app.listen(port, () =>
   console.log(`🚀 Server running on http://localhost:${port}`)

@@ -3,6 +3,6 @@ import { clerkWebhookController } from "@/controllers/clerkWebhookController";
 
 const clerkRouter = express.Router();
 
-clerkRouter.post("/clerk", clerkWebhookController);
+clerkRouter.post("/", clerkWebhookController);
 
 export default clerkRouter;
