@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { verifyClerkWebhook } from "@/utils/handleClerkWebhookUtils";
+import { verifyClerkWebhook } from "@/utils/verifyClerkWebhook";
 import { handleClerkWebhookEvent } from "@/services/clerkWebhookService";
 
 export const clerkWebhookController = async (

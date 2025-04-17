@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
-// import { ClerkProvider } from "@clerk/nextjs";
 import "./globals.css";
-import { ThemeProvider } from "@/providers/theme-provider";
+import { ThemeProvider } from "@/providers/themeProvider";
+import AuthProvider from "@/providers/authProvider";
 
 export const metadata: Metadata = {
   title: "OmniLedger | All-in-One E-commerce & ERP SaaS Platform",
@@ -17,22 +17,22 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    // <ClerkProvider>
     <>
       <html lang="en" suppressHydrationWarning>
         <head />
         <body>
-          <ThemeProvider
-            attribute="class"
-            defaultTheme="system"
-            enableSystem
-            disableTransitionOnChange
-          >
-            {children}
-          </ThemeProvider>
+          <AuthProvider>
+            <ThemeProvider
+              attribute="class"
+              defaultTheme="system"
+              enableSystem
+              disableTransitionOnChange
+            >
+              {children}
+            </ThemeProvider>
+          </AuthProvider>
         </body>
       </html>
     </>
-    // </ClerkProvider>
   );
 }

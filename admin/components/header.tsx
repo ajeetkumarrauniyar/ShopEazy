@@ -1,14 +1,22 @@
 "use client";
 
-import { OrganizationSwitcher, useUser } from "@clerk/nextjs";
+import {
+  SignedIn,
+  SignedOut,
+  SignInButton,
+  SignUpButton,
+  UserButton,
+} from "@clerk/nextjs";
+// import { OrganizationSwitcher, useUser } from "@clerk/nextjs";
+// import Link from "next/link";
 import React, { useState, useEffect } from "react";
 
 const Header = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
 
-  const { user, isLoaded } = useUser();
-  const [userData, setUserData] = useState(null);
+  // const { user, isLoaded } = useUser();
+  // const [userData, setUserData] = useState(null);
 
   // Handle scroll effect for header
   useEffect(() => {
@@ -23,18 +31,6 @@ const Header = () => {
   const toggleMobileMenu = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
   };
-
-  useEffect(() => {
-    if (isLoaded && user) {
-      // Fetch additional user data from your database
-      // based on the Clerk ID that the webhook stored
-      fetch(`/api/users/${user.id}`)
-        .then((res) => res.json())
-        .then((data) => setUserData(data));
-    }
-  }, [isLoaded, user]);
-
-  if (!isLoaded) return <div>Loading...</div>;
 
   return (
     <section id="header">
@@ -92,13 +88,25 @@ const Header = () => {
               >
                 Contact
               </a>
-              <a
+              {/* <Link
                 href="/sign-in"
-                className="ml-2 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-700"
+                className="rounded bg-blue-500 px-4 py-2 font-bold text-white hover:bg-blue-600"
               >
                 Sign In
-              </a>
-              <h1 className="text-white text-2xl font-bold">Welcome, {user?.firstName}!</h1>
+              </Link>
+              <Link
+                href="/sign-up"
+                className="rounded bg-green-500 px-4 py-2 font-bold text-white hover:bg-green-600"
+              >
+               Sign Up
+              </Link> */}
+              <SignedOut>
+                <SignInButton />
+                <SignUpButton />
+              </SignedOut>
+              <SignedIn>
+                <UserButton />
+              </SignedIn>
             </div>
 
             {/* Mobile menu button */}

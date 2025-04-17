@@ -1,7 +1,6 @@
 import express, { Request, Response } from "express";
 import cors from "cors";
 import { env } from "@/config/envConfig";
-import { clerkClient } from "@clerk/express";
 import clerkRouter from "@/routes/clerkWebhookRoutes";
 
 const app = express();
