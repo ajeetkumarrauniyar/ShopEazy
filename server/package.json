@@ -10,11 +10,9 @@
     "prisma:generate": "npx prisma generate",
     "prisma:migrate": "npx prisma migrate dev --name init",
     "prisma:studio": "npx prisma studio",
-    "prisma:reset": "npx prisma migrate reset --force --skip-generate"
+    "prisma:reset": "npx prisma migrate reset"
   },
-  "prisma": {
-    "seed": "tsx prisma/seed.ts"
-  },
+ 
   "dependencies": {
     "@clerk/express": "^1.4.0",
     "@prisma/client": "^6.5.0",

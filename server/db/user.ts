@@ -24,7 +24,7 @@ export const createUser = async (user: UserJSON) => {
     } else {
       console.error("❌ User creation failed");
     }
-    
+
     console.log(`✅ User created in DB with clerkId: ${id}`);
     return newUser;
   } catch (error) {
