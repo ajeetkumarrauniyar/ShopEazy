@@ -1,6 +1,6 @@
 "use client";
 
-import { useTheme } from "@/components/shared/themeProvider";
+import { useTheme } from "next-themes";
 import {
   Cell,
   Legend,

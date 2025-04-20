@@ -6,17 +6,10 @@ import { ThemeProvider } from "@/components/shared/themeProvider";
 import { Toaster } from "sonner";
 
 const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
-//   const { userId } = auth();
+  //   const { userId } = auth();
 
   return (
-    <>
-      {/* //     <ThemeProvider
-//       attribute="class"
-//       defaultTheme="dark"
-//       enableSystem
-//       disableTransitionOnChange
-//     > */}
-
+    <ThemeProvider>
       <div className="flex h-screen overflow-hidden">
         <Sidebar />
         <div className="flex flex-1 flex-col overflow-hidden">
@@ -27,8 +20,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
         </div>
       </div>
       <Toaster position="top-right" />
-      {/* //     </ThemeProvider> */}
-    </>
+    </ThemeProvider>
   );
 };
 
