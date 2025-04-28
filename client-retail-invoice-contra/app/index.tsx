@@ -1,3 +1,4 @@
+import { useAuth } from "@clerk/clerk-expo";
 import { router } from "expo-router";
 import { useEffect } from "react";
 import { View, Text, ActivityIndicator, StyleSheet } from "react-native";
@@ -9,16 +10,18 @@ import { View, Text, ActivityIndicator, StyleSheet } from "react-native";
  */
 
 export default function SplashScreen() {
+  const { isLoaded, isSignedIn } = useAuth();
+
   useEffect(() => {
-    setTimeout(() => {
-      const isAuthenticated = true; // You can replace with real logic
-      if (isAuthenticated) {
-        router.replace("/(tabs)");
-      } else {
-        router.replace("/(auth)/sign-in");
-      }
-    }, 1500);
-  }, []);
+    if (!isLoaded) return; // still loading Clerk session
+
+    if (isSignedIn) {
+      router.replace("/(tabs)"); // if signed in, go to tabs
+    } else {
+      router.replace("/(auth)/sign-in"); // if not signed in, go to login
+    }
+  }, [isLoaded, isSignedIn]);
+
   return (
     <View style={styles.container}>
       <ActivityIndicator size="large" color="#0000ff" />
