@@ -5,7 +5,7 @@ import type {
   SessionJSON,
   // add more types as needed
 } from "@clerk/express";
-import { createUser } from "@/db";
+import { userService } from "@/services/userService";
 
 export const handleClerkWebhookEvent = async (
   evt: ClerkWebhookEvent
@@ -18,7 +18,7 @@ export const handleClerkWebhookEvent = async (
     case "user.created": {
       const user = data as UserJSON;
       console.log("👤 New user created:", user.id);
-      await createUser(user); // Save user to DB
+      await userService.createUserFromClerk(user); // Save user to DB
       break;
     }
 

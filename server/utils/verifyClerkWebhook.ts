@@ -23,7 +23,10 @@ export const verifyClerkWebhook = async (
 
   const svix = new Webhook(SIGNING_SECRET);
 
-  const payload = req.body instanceof Buffer ? req.body.toString('utf8') : JSON.stringify(req.body);  
+  const payload =
+    req.body instanceof Buffer
+      ? req.body.toString("utf8")
+      : JSON.stringify(req.body);
   const headers = req.headers;
 
   const svixId = headers["svix-id"] as string;
@@ -33,6 +36,17 @@ export const verifyClerkWebhook = async (
   if (!svixId || !svixTimestamp || !svixSignature) {
     console.error("❌ Missing required svix headers");
     throw new Error("Missing required svix headers");
+  }
+
+  // Add timestamp validation to prevent replay attacks
+  const MAX_WEBHOOK_AGE = 5 * 60 * 1000; // 5 minutes
+
+  // Validate timestamp to prevent replay attacks
+  const timestamp = Number.parseInt(svixTimestamp, 10);
+  const now = Date.now() / 1000;
+  if (Math.abs(now - timestamp) > MAX_WEBHOOK_AGE / 1000) {
+    console.error("❌ Webhook too old or from future:", svixTimestamp);
+    throw new Error("Webhook timestamp validation failed");
   }
 
   let evt: ClerkWebhookEvent;

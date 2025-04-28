@@ -8,31 +8,33 @@ datasource db {
 }
 
 //Global roles at the User level
-enum Role {
+enum UserRole {
   SUPER_ADMIN
   ADMIN
-  MEMBER
-  GUEST
+  USER
 }
 
 model User {
-  id                 String               @id @default(uuid())
-  clerkId            String               @unique
-  phoneNumber        String               @unique
-  emailAddress       String?              @unique
-  firstName          String?
-  lastName           String?
+  id           String   @id @default(uuid())
+  clerkId      String   @unique
+  phoneNumber  String   @unique
+  emailAddress String?  @unique
+  firstName    String?
+  lastName     String?
   // role               Role                 @default(USER)
   // isSubscribed       Boolean              @default(false)
   // subscriptionEnds   DateTime?
-  createdAt          DateTime             @default(now())
-  updatedAt          DateTime             @updatedAt()
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt()
+
+  // Relationships
   organizationMember OrganizationMember[]
   // createdOrgs        Organization[]       @relation("CreatedBy")
+  Invoice            Invoice[]
 }
 
 model Organization {
-  id        String               @id @default(uuid())
+  id        String   @id @default(uuid())
   // clerkId   String   @unique
   name      String
   //   slug           String               @unique
@@ -50,12 +52,17 @@ model Organization {
   //   updatedAt      DateTime             @updatedAt
   //   creatorId      String?
   //   creator        User?                @relation("CreatedBy", fields: [creatorId], references: [id])
-  //   financialYears FinancialYear[]
-  members   OrganizationMember[]
-  //   products       Product[]
   //   subscription   Subscription?
-  createdAt DateTime             @default(now())
-  updatedAt DateTime             @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relationships
+  //   financialYears FinancialYear[]
+  members OrganizationMember[]
+  //   products       Product[]
+  // invoices Invoice[]
+  //   auditLogs     AuditLog[]
+  //   subscriptions  Subscription[]
 }
 
 model OrganizationMember {
@@ -63,7 +70,7 @@ model OrganizationMember {
   userId         String
   organizationId String
   // role           MemberRole @default(MEMBER)
-  role           Role
+  role           UserRole
   //   invitationStatus InvitationStatus @default(ACTIVE)
   //   invitedEmail     String?
   //   invitedAt        DateTime?
@@ -72,6 +79,7 @@ model OrganizationMember {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
+  // Relationships
   user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
@@ -93,6 +101,40 @@ model OrganizationMember {
 //   @@unique([organizationId, name])
 //   @@index([organizationId])
 // }
+
+model Invoice {
+  id                 Int           @id @default(autoincrement())
+  userId             String
+  user               User          @relation(fields: [userId], references: [id])
+  invoiceNumber      String        @unique
+  invoiceDate        DateTime
+  items              InvoiceItem[]
+  invoiceTotalAmount Float
+  // isDeleted        Boolean      @default(false)
+  // isPaid           Boolean      @default(false)
+  // paymentStatus    String       @default("PENDING")
+  // paymentDate      DateTime?
+  // paymentMethod    String?
+  // paymentReference String?
+  // paymentAmount    Float?
+  // paymentRemarks   String?
+  // organizationId   String
+  // organization     Organization @relation(fields: [organizationId], references: [id])
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+  //   financialYearId  String
+  //   financialYear    FinancialYear @relation(fields: [financialYearId], references: [id], onDelete: Cascade)
+}
+
+model InvoiceItem {
+  id          String   @id @default(uuid())
+  invoiceId   Int
+  invoice     Invoice  @relation(fields: [invoiceId], references: [id])
+  productName String
+  sellRate    Float
+  quantity    Float
+  createdAt   DateTime @default(now())
+}
 
 // model Product {
 //   id             String       @id @default(uuid())
@@ -117,10 +159,13 @@ model OrganizationMember {
 //   autoRenew        Boolean      @default(true)
 //   stripeCustomerId String?
 //   stripeSubId      String?
-//   organization     Organization @relation(fields: [organizationId], references: [id])
-//   organizationId   String       @unique
 //   createdAt        DateTime     @default(now())
 //   updatedAt        DateTime     @updatedAt
+
+// Relationships
+//   organization     Organization @relation(fields: [organizationId], references: [id])
+//   organizationId   String       @unique
+
 // }
 
 // model AuditLog {
@@ -143,10 +188,10 @@ model OrganizationMember {
 // }
 
 // //Organization-specific roles in OrganizationMember
-// enum MemberRole {
+// enum OrgMemberRole {
 //   OWNER
-//   ADMIN
-//   MEMBER
+//   MANAGER
+//   STAFF
 //   VIEWER
 // }
 
