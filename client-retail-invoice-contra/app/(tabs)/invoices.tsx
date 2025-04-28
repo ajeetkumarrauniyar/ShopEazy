@@ -10,6 +10,8 @@ import {
   Platform,
 } from "react-native";
 import DateTimePickerAndroid from "@react-native-community/datetimepicker";
+import { API_URL } from "@/config";
+import { useAuth } from "@clerk/clerk-expo";
 
 // Define the product type to fix TypeScript issues
 interface Product {
@@ -20,7 +22,9 @@ interface Product {
 
 const initialProduct = { name: "", sellRate: "", quantity: "" };
 
-export default function InvoicesScree() {
+export default function InvoicesScreen() {
+  const { getToken } = useAuth();
+
   const [invoiceDate, setInvoiceDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [products, setProducts] = useState([{ ...initialProduct }]);
@@ -51,14 +55,54 @@ export default function InvoicesScree() {
     setProducts(updatedProducts);
   };
 
-  const handleSaveInvoice = () => {
-    console.log("Saving Invoice...");
-    console.log({
-      invoiceDate,
-      products,
-    });
-    // TODO: Send this data to your backend (Supabase etc.)
-    alert("Invoice Saved!");
+  const handleSaveInvoice = async () => {
+    const token = await getToken();
+
+    if (!token) {
+      alert("User not authenticated");
+      return;
+    }
+
+    try {
+      console.log(`Sending request to: ${API_URL}/api/invoice`);
+      console.log(`Using token: ${token.substring(0, 10)}...`); // Show first part of token for debugging
+
+      const response = await fetch(`${API_URL}/api/invoice`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          invoiceDate: invoiceDate.toISOString(),
+          products,
+        }),
+      });
+
+      // Log the full response details
+      console.log(`Response status: ${response.status}`);
+      const responseText = await response.text();
+      console.log(`Response body: ${responseText}`);
+
+      // Parse if it's JSON
+      try {
+        const responseData = JSON.parse(responseText);
+        console.log("Response data:", responseData);
+      } catch (e) {
+        // Not JSON, which is fine
+      }
+
+      if (response.ok) {
+        alert("Invoice Saved Successfully!");
+        // Clear form if needed
+        setProducts([{ ...initialProduct }]);
+      } else {
+        alert("Failed to save invoice.");
+      }
+    } catch (error) {
+      console.error("Error saving invoice:", error);
+      alert("Something went wrong.");
+    }
   };
 
   const calculateTotal = () => {
