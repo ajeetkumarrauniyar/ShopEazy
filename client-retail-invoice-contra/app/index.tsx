@@ -1,5 +1,5 @@
 import { useAuth } from "@clerk/clerk-expo";
-import { router } from "expo-router";
+import { router, useRootNavigationState } from "expo-router";
 import { useEffect } from "react";
 import { View, Text, ActivityIndicator, StyleSheet } from "react-native";
 
@@ -11,16 +11,24 @@ import { View, Text, ActivityIndicator, StyleSheet } from "react-native";
 
 export default function SplashScreen() {
   const { isLoaded, isSignedIn } = useAuth();
+  const rootNavigationState = useRootNavigationState();
 
   useEffect(() => {
-    if (!isLoaded) return; // still loading Clerk session
+    // Make sure both Clerk auth is loaded AND navigation is ready
+    if (!isLoaded || !rootNavigationState?.key) return;
 
-    if (isSignedIn) {
-      router.replace("/(tabs)"); // if signed in, go to tabs
-    } else {
-      router.replace("/(auth)/sign-in"); // if not signed in, go to login
-    }
-  }, [isLoaded, isSignedIn]);
+    const navigateBasedOnAuth = () => {
+      if (isSignedIn) {
+        router.replace("/(tabs)"); // if signed in, go to tabs
+      } else {
+        router.replace("/(auth)/sign-in"); // if not signed in, go to login
+      }
+    };
+
+    // Add a slight delay to ensure everything is fully mounted
+    const timer = setTimeout(navigateBasedOnAuth, 100);
+    return () => clearTimeout(timer);
+  }, [isLoaded, isSignedIn, rootNavigationState?.key]);
 
   return (
     <View style={styles.container}>

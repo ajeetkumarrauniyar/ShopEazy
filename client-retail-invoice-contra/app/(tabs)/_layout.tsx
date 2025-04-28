@@ -16,7 +16,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="invoices"
         options={{
-          title: "Invoices",
+          title: "Create Invoice",
           tabBarIcon: ({ color }) => (
             <FontAwesome size={28} name="file-text" color={color} />
           ),
