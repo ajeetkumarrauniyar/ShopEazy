@@ -17,7 +17,7 @@ enum UserRole {
 model User {
   id           String   @id @default(uuid())
   clerkId      String   @unique
-  phoneNumber  String   @unique
+  phoneNumber  String?
   emailAddress String?  @unique
   firstName    String?
   lastName     String?
@@ -31,6 +31,8 @@ model User {
   organizationMember OrganizationMember[]
   // createdOrgs        Organization[]       @relation("CreatedBy")
   Invoice            Invoice[]
+
+  @@unique([phoneNumber, clerkId])
 }
 
 model Organization {
@@ -124,6 +126,8 @@ model Invoice {
   updatedAt          DateTime      @updatedAt
   //   financialYearId  String
   //   financialYear    FinancialYear @relation(fields: [financialYearId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model InvoiceItem {
