@@ -17,9 +17,16 @@ export const userService = {
         );
         return existingUser;
       }
+
+      const email = email_addresses?.[0]?.email_address || undefined;
+      let phoneNumber = undefined;
+      if (phone_numbers && phone_numbers.length > 0) {
+        phoneNumber = phone_numbers[0].phone_number;
+      }
       
-      const email = email_addresses?.[0]?.email_address || "";
-      const phoneNumber = phone_numbers?.[0]?.phone_number || "";
+      if (!email && !phoneNumber) {
+        throw new Error("No email or phone number provided");
+      }
 
       const payload = {
         clerkId: id,

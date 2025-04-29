@@ -6,20 +6,20 @@ import clerkRouter from "@/routes/clerkWebhookRoutes";
 import userRoutes from "@/routes/userRoutes";
 import invoiceRoutes from "@/routes/invoiceRoutes";
 import { errorHandler } from "@/middlewares/errorHandler";
-import { clerkMiddleware } from "@clerk/express";
+import { clerkAuthMiddleware } from "@/config/clerkClientConfig";
+
+validateEnv();
 
 const app = express();
 const port = env.PORT;
 
-validateEnv();
-
+//CORS
 const allowedOrigins = [
   "http://localhost:3000",
   "http://localhost:8081",
   "https://credible-seemingly-caribou.ngrok-free.app",
 ];
 
-// Middlewares
 app.use(
   cors({
     origin: (origin, callback) => {
@@ -30,11 +30,15 @@ app.use(
       }
     },
     credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: [
+      "Content-Type",
+      "Authorization",
+      "X-Requested-With",
+      "X-Clerk-Auth",
+    ],
   })
 );
-
-// Clerk middleware for auth
-app.use(clerkMiddleware());
 
 // Handle raw body for webhook verification
 app.use("/api/webhooks/clerk", express.raw({ type: "application/json" }));
@@ -50,21 +54,16 @@ app.use(function (req, res, next) {
 
 app.use(express.urlencoded({ extended: true }));
 
+// Clerk Middleware to protect routes
+app.use(clerkAuthMiddleware);
+
 // Log requests
-app.use((req: Request, res: Response, next: NextFunction) => {
+app.use((req, res, next) => {
   console.log(`[Express] ${req.method} ${req.path}`);
-  // Log req.auth *after* clerkMiddleware has run
-  if (req.auth && req.auth.userId) {
-    console.log(`[Express] Clerk Auth User ID: ${req.auth.userId}`);
-  } else if (req.headers.authorization) {
-    console.log(
-      `[Express] Auth header present but req.auth not populated (or no userId): ${req.headers.authorization.substring(
-        0,
-        15
-      )}...`
-    );
+  if (req.auth?.userId) {
+    console.log(`[Express] Clerk User ID: ${req.auth.userId}`);
   } else {
-    console.log(`[Express] No auth header`);
+    console.log(`[Express] No Clerk User`);
   }
   next();
 });
@@ -82,6 +81,21 @@ app.use("/api/invoice", invoiceRoutes);
 
 // Webhook route
 app.use("/api/webhooks/clerk", clerkRouter);
+
+// Add a catch-all handler for authentication redirects
+app.use((req: Request, res: Response) => {
+  // If this is a redirect from Clerk authentication
+  if (req.method === "GET" && req.path === "/") {
+    res.status(401).json({
+      error: "Authentication failed",
+      message: "Please provide a valid authentication token",
+    });
+    return;
+  }
+
+  // Otherwise 404
+  res.status(404).json({ error: "Not found" });
+});
 
 // Error handling middleware
 app.use(errorHandler);

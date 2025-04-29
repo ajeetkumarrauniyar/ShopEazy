@@ -10,6 +10,8 @@ import {
   TouchableOpacity,
 } from "react-native";
 
+console.log("SignUp component loaded");
+
 export default function SignUpScreen() {
   const { isLoaded, signUp, setActive } = useSignUp();
   const router = useRouter();
@@ -21,6 +23,7 @@ export default function SignUpScreen() {
 
   // Handle submission of sign-up form
   const onSignUpPress = async () => {
+    console.log("onSignUpPress: Starting the sign up process.");
     if (!isLoaded) return;
 
     console.log(emailAddress, password);
@@ -42,11 +45,16 @@ export default function SignUpScreen() {
       // See https://clerk.com/docs/custom-flows/error-handling
       // for more info on error handling
       console.error(JSON.stringify(err, null, 2));
+    } finally {
+      console.log("onSignUpPress: Finished the sign up process.");
     }
   };
 
   // Handle submission of verification form
   const onVerifyPress = async () => {
+    console.log("onVerifyPress component loaded");
+    console.log("onVerifyPress: Starting the verification process.");
+    console.log('onVerifyPress - Verifying with code: ', code);
     if (!isLoaded) return;
 
     try {
@@ -59,6 +67,7 @@ export default function SignUpScreen() {
       // and redirect the user
       if (signUpAttempt.status === "complete") {
         await setActive({ session: signUpAttempt.createdSessionId });
+        console.log("onVerifyPress: Session activated successfully!");
         router.replace("/");
       } else {
         // If the status is not complete, check why. User may need to
@@ -69,6 +78,8 @@ export default function SignUpScreen() {
       // See https://clerk.com/docs/custom-flows/error-handling
       // for more info on error handling
       console.error(JSON.stringify(err, null, 2));
+    } finally {
+      console.log("onVerifyPress: Finished the verification process.");
     }
   };
 
@@ -80,6 +91,7 @@ export default function SignUpScreen() {
           value={code}
           placeholder="Enter your verification code"
           onChangeText={(code) => setCode(code)}
+          keyboardType="numeric"
         />
         <TouchableOpacity onPress={onVerifyPress}>
           <Text>Verify</Text>

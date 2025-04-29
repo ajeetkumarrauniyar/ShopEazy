@@ -30,6 +30,7 @@ export default function SplashScreen() {
     return () => clearTimeout(timer);
   }, [isLoaded, isSignedIn, rootNavigationState?.key]);
 
+  console.log("Index file loaded");
   return (
     <View style={styles.container}>
       <ActivityIndicator size="large" color="#0000ff" />
