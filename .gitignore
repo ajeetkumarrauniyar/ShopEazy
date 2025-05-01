@@ -111,4 +111,5 @@ backup/prompts.md
 backup/temp.html
 backup/constants/Colors.ts
 server/Simple_ERD_Structure.md
-server/todo.txt
+server-k/**/*
+
