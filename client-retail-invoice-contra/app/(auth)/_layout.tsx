@@ -3,7 +3,8 @@ import { useAuth } from "@clerk/clerk-expo";
 import { ActivityIndicator, View } from "react-native";
 
 export default function AuthLayout() {
-  const { isLoaded, isSignedIn } = useAuth();
+  const { isLoaded, isSignedIn, userId } = useAuth();
+  console.log("Auth status - Signed in:", isSignedIn, "User ID:", userId);
 
   if (!isLoaded) {
     return (

@@ -10,8 +10,7 @@ import {
   Platform,
 } from "react-native";
 import DateTimePickerAndroid from "@react-native-community/datetimepicker";
-import { API_URL } from "@/config";
-import { useAuth } from "@clerk/clerk-expo";
+import { useSecureApi } from "@/config";
 
 // Define the product type to fix TypeScript issues
 interface Product {
@@ -23,11 +22,12 @@ interface Product {
 const initialProduct = { name: "", sellRate: "", quantity: "" };
 
 export default function InvoicesScreen() {
-  const { getToken } = useAuth();
+  const api = useSecureApi();
 
   const [invoiceDate, setInvoiceDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [products, setProducts] = useState([{ ...initialProduct }]);
+  const [products, setProducts] = useState<Product[]>([{ ...initialProduct }]);
+  const [loading, setLoading] = useState(false);
 
   const openDatePicker = () => {
     if (Platform.OS === "android") {
@@ -56,52 +56,57 @@ export default function InvoicesScreen() {
   };
 
   const handleSaveInvoice = async () => {
-    const token = await getToken();
-
-    if (!token) {
-      alert("User not authenticated");
+    if (!products[0].name) {
+      alert({
+        "Validation Error": "Please add at least one product with a name",
+      });
       return;
     }
 
+    setLoading(true);
+
     try {
-      console.log(`Sending request to: ${API_URL}/api/invoice`);
-      console.log(`Using token: ${token.substring(0, 10)}...`); // Show first part of token for debugging
+      // Create a clean version of the products data
+      const preparedProducts = products.map((product) => ({
+        name: product.name.trim(),
+        sellRate: parseFloat(product.sellRate) || 0,
+        quantity: parseInt(product.quantity) || 0,
+      }));
 
-      const response = await fetch(`${API_URL}/api/invoice`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          invoiceDate: invoiceDate.toISOString(),
-          products,
-        }),
-      });
+      const payload = {
+        invoiceDate: invoiceDate.toISOString(),
+        products: preparedProducts,
+      };
 
-      // Log the full response details
+      console.log("Saving invoice with data:", payload);
+
+      const response = await api.post("/api/invoice", payload);
       console.log(`Response status: ${response.status}`);
-      const responseText = await response.text();
-      console.log(`Response body: ${responseText}`);
+      console.log("Invoice saved successfully:", response.data);
 
-      // Parse if it's JSON
-      try {
-        const responseData = JSON.parse(responseText);
-        console.log("Response data:", responseData);
-      } catch (e) {
-        // Not JSON, which is fine
-      }
+      // Reset form
+      setProducts([{ ...initialProduct }]);
+      setInvoiceDate(new Date());
 
-      if (response.ok) {
-        alert("Invoice Saved Successfully!");
-        // Clear form if needed
-        setProducts([{ ...initialProduct }]);
-      } else {
-        alert("Failed to save invoice.");
-      }
-    } catch (error) {
+      // Show success message
+      alert({ Success: "Invoice saved successfully!" });
+    } catch (error: any) {
       console.error("Error saving invoice:", error);
-      alert("Something went wrong.");
+
+      // More informative error message with connection troubleshooting
+      let errorMessage = "Failed to save invoice. ";
+
+      if (!error.response) {
+        errorMessage +=
+          "Could not connect to the server. Please check your internet connection and ensure the server is running.";
+      } else {
+        errorMessage +=
+          error.response?.data?.error || error.message || "Please try again.";
+      }
+
+      alert({ Error: errorMessage });
+    } finally {
+      setLoading(false);
     }
   };
 

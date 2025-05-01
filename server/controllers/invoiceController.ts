@@ -10,6 +10,7 @@ export const invoiceController = {
   async createInvoice(req: Request, res: Response) {
     try {
       const clerkId = authService.getAuthUserId(req);
+      console.log("Received invoice from Clerk user:", req.auth?.userId);
 
       const { invoiceDate, products } = req.body;
 

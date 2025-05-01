@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { userController } from "@/controllers/userController";
-import { requireAuth } from "@clerk/express";
+import { isAuthenticated } from "@/middlewares/authMiddleware";
 
 const router = Router();
 
@@ -9,12 +9,12 @@ const router = Router();
  */
 
 // GET current user
-router.get("/me", requireAuth(), (req, res, next) => {
+router.get("/me", isAuthenticated, (req, res, next) => {
   userController.getMeController(req, res).catch(next);
 });
 
 // POST sync user data from Clerk
-router.post("/sync", requireAuth(), (req, res, next) => {
+router.post("/sync", isAuthenticated, (req, res, next) => {
   userController.syncUserController(req, res).catch(next);
 });
 

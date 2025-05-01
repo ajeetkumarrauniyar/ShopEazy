@@ -1,4 +1,4 @@
-import express, { Request, Response, NextFunction } from "express";
+import express, { Request, Response } from "express";
 import cors from "cors";
 import { env } from "@/config/envConfig";
 import { validateEnv } from "@/config/validateEnv";
@@ -6,12 +6,15 @@ import clerkRouter from "@/routes/clerkWebhookRoutes";
 import userRoutes from "@/routes/userRoutes";
 import invoiceRoutes from "@/routes/invoiceRoutes";
 import { errorHandler } from "@/middlewares/errorHandler";
-import { clerkAuthMiddleware } from "@/config/clerkClientConfig";
+import { clerkMiddleware } from "@clerk/express";
 
 validateEnv();
 
 const app = express();
 const port = env.PORT;
+
+console.log("Clerk Secret Key:", process.env.CLERK_SECRET_KEY?.slice(0, 10) + "...");
+app.use(clerkMiddleware())
 
 //CORS
 const allowedOrigins = [
@@ -53,9 +56,6 @@ app.use(function (req, res, next) {
 });
 
 app.use(express.urlencoded({ extended: true }));
-
-// Clerk Middleware to protect routes
-app.use(clerkAuthMiddleware);
 
 // Log requests
 app.use((req, res, next) => {
