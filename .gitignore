@@ -37,3 +37,49 @@ Thumbs.db
 /client
 /docs
 *.png
+# --------------------------
+# FRAMEWORK SPECIFIC
+# --------------------------
+# Next.js/Vercel
+**/.vercel/
+
+# Clerk
+**/.clerk/
+
+# Expo/React Native
+**/.expo/
+**/web-build/
+**/ios/
+**/android/
+
+# Laravel/PHP
+**/vendor/
+**/bootstrap/cache/
+**/storage/*.key
+**/storage/framework/*
+!**/storage/framework/.gitkeep
+**/storage/logs/
+**/public/storage
+composer.lock
+
+# Prisma
+**/generated/
+**/.prisma/
+**/migrations/
+!**/migrations/
+
+# --------------------------
+# Turbo
+
+.turbo/cookies/**
+.turbo/daemon/c7cb7f1eec5bb18e-turbo.log.2025-04-01
+.turbo/preferences/tui.json
+packages/db/.turbo/turbo-build.log
+
+# --------------------------
+# DEVLOPMENT SPECIFIC
+# --------------------------
+@@invoices/**/*
+backup/**
+server/Simple_ERD_Structure.md
+server/todo.txt
