@@ -14,6 +14,26 @@ enum UserRole {
   USER
 }
 
+// enum OrgMemberRole {
+//   OWNER
+//   MANAGER
+//   STAFF
+//   VIEWER
+// }
+
+// enum PlanType {
+//   FREE
+//   STANDARD
+//   PREMIUM
+//   ENTERPRISE
+// }
+
+// enum InvitationStatus {
+//   PENDING
+//   ACTIVE
+//   DECLINED
+// }
+
 model User {
   id           String   @id @default(uuid())
   clerkId      String   @unique
@@ -50,17 +70,17 @@ model Organization {
   //   gstIn          String?
   //   panNo          String?
   //   isActive       Boolean              @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
   //   createdAt      DateTime             @default(now())
   //   updatedAt      DateTime             @updatedAt
   //   creatorId      String?
   //   creator        User?                @relation("CreatedBy", fields: [creatorId], references: [id])
   //   subscription   Subscription?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
 
   // Relationships
-  //   financialYears FinancialYear[]
   members OrganizationMember[]
+  //   financialYears FinancialYear[]
   //   products       Product[]
   // invoices Invoice[]
   //   auditLogs     AuditLog[]
@@ -89,28 +109,11 @@ model OrganizationMember {
   @@index([organizationId])
 }
 
-// model FinancialYear {
-//   id             String       @id @default(uuid())
-//   name           String?      @unique
-//   startDate      DateTime
-//   endDate        DateTime
-//   isCurrent      Boolean      @default(false)
-//   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-//   organizationId String
-//   createdAt      DateTime     @default(now())
-//   updatedAt      DateTime     @updatedAt
-
-//   @@unique([organizationId, name])
-//   @@index([organizationId])
-// }
-
 model Invoice {
-  id                 Int           @id @default(autoincrement())
+  id                 Int      @id @default(autoincrement())
   userId             String
-  user               User          @relation(fields: [userId], references: [id])
-  invoiceNumber      String        @unique
+  invoiceNumber      String   @unique
   invoiceDate        DateTime
-  items              InvoiceItem[]
   invoiceTotalAmount Float
   // isDeleted        Boolean      @default(false)
   // isPaid           Boolean      @default(false)
@@ -122,10 +125,14 @@ model Invoice {
   // paymentRemarks   String?
   // organizationId   String
   // organization     Organization @relation(fields: [organizationId], references: [id])
-  createdAt          DateTime      @default(now())
-  updatedAt          DateTime      @updatedAt
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
   //   financialYearId  String
   //   financialYear    FinancialYear @relation(fields: [financialYearId], references: [id], onDelete: Cascade)
+
+  // Relationships
+  user  User          @relation(fields: [userId], references: [id])
+  items InvoiceItem[]
 
   @@index([userId])
 }
@@ -133,12 +140,29 @@ model Invoice {
 model InvoiceItem {
   id          String   @id @default(uuid())
   invoiceId   Int
-  invoice     Invoice  @relation(fields: [invoiceId], references: [id])
   productName String
   sellRate    Float
   quantity    Float
   createdAt   DateTime @default(now())
+
+  // Relationships
+  invoice Invoice @relation(fields: [invoiceId], references: [id])
 }
+
+// model FinancialYear {
+//   id             String       @id @default(uuid())
+//   name           String?      @unique
+//   startDate      DateTime
+//   endDate        DateTime
+//   isCurrent      Boolean      @default(false)
+//   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+//   organizationId String
+//   createdAt      DateTime     @default(now())
+//   updatedAt      DateTime     @updatedAt
+//
+//   @@unique([organizationId, name])
+//   @@index([organizationId])
+// }
 
 // model Product {
 //   id             String       @id @default(uuid())
@@ -150,7 +174,7 @@ model InvoiceItem {
 //   organizationId String
 //   createdAt      DateTime     @default(now())
 //   updatedAt      DateTime     @updatedAt
-
+//
 //   @@index([organizationId])
 // }
 
@@ -165,11 +189,10 @@ model InvoiceItem {
 //   stripeSubId      String?
 //   createdAt        DateTime     @default(now())
 //   updatedAt        DateTime     @updatedAt
-
-// Relationships
+//
+//   // Relationships
 //   organization     Organization @relation(fields: [organizationId], references: [id])
 //   organizationId   String       @unique
-
 // }
 
 // model AuditLog {
@@ -184,30 +207,9 @@ model InvoiceItem {
 //   ipAddress      String?
 //   userAgent      String?
 //   createdAt      DateTime @default(now())
-
+//
 //   @@index([organizationId])
 //   @@index([userId])
 //   @@index([entityType, entityId])
 //   @@index([createdAt])
-// }
-
-// //Organization-specific roles in OrganizationMember
-// enum OrgMemberRole {
-//   OWNER
-//   MANAGER
-//   STAFF
-//   VIEWER
-// }
-
-// enum PlanType {
-//   FREE
-//   STANDARD
-//   PREMIUM
-//   ENTERPRISE
-// }
-
-// enum InvitationStatus {
-//   PENDING
-//   ACTIVE
-//   DECLINED
 // }

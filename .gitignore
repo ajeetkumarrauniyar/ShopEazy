@@ -106,3 +106,9 @@ composer.lock
 .turbo/daemon/c7cb7f1eec5bb18e-turbo.log.2025-04-01
 .turbo/preferences/tui.json
 packages/db/.turbo/turbo-build.log
+backup/@middleware.ts
+backup/prompts.md
+backup/temp.html
+backup/constants/Colors.ts
+server/Simple_ERD_Structure.md
+server/todo.txt
