@@ -113,3 +113,8 @@ backup/constants/Colors.ts
 server/Simple_ERD_Structure.md
 server-k/**/*
 
+server/.dev.env
+server/.prod.env
+server/app.log
+server/.env.prod
+server/.env.dev
