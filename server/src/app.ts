@@ -35,8 +35,10 @@ app.get("/", (req, res) => {
 // Register all routes
 app.use("/api", routes);
 
-// Optional: Include error handlers if available
+// Error handling middleware
 // app.use(errorHandler);
+
+// Not found middleware
 // app.use(notFoundHandler());
 
 export { app, prisma, env, logger };

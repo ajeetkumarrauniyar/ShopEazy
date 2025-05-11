@@ -1,8 +1,14 @@
 import React from "react";
-import { Text, View, FlatList, StyleSheet } from "react-native";
+import {
+  Text,
+  View,
+  FlatList,
+  StyleSheet,
+  ActivityIndicator,
+} from "react-native";
 import { useQuery } from "@tanstack/react-query";
 import { SafeAreaView } from "react-native-safe-area-context";
-import axios from "axios";
+import { useApi } from "@/lib/useApi";
 
 type User = {
   id: string;
@@ -11,26 +17,17 @@ type User = {
   createdAt: string;
 };
 
-const API_URL = "http://192.168.31.90:5000/api/v1/users/";
-
-// Create axios instance with default config
-const api = axios.create({
-  baseURL: API_URL,
-  headers: {
-    Accept: "application/json",
-    "Content-Type": "application/json",
-  },
-});
-
 const HomeScreen = () => {
+  const api = useApi();
+
   const { data, isLoading, error } = useQuery({
     queryKey: ["fetchAllUsers"],
     queryFn: async () => {
       try {
-        const response = await api.get("");
+        const response = await api.get("/users");
         return response.data;
       } catch (err) {
-        console.error("Axios error:", err);
+        console.error("API error:", err);
         throw err;
       }
     },
@@ -39,7 +36,8 @@ const HomeScreen = () => {
   if (isLoading) {
     return (
       <View style={styles.centered}>
-        <Text>Loading...</Text>
+        <ActivityIndicator size="large" color="#0000ff" />
+        <Text>Loading users...</Text>
       </View>
     );
   }

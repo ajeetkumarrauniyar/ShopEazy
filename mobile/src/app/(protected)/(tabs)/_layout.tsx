@@ -20,11 +20,11 @@ export default function ProtectedTabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="profile"
+        name="invoice"
         options={{
-          title: "Profile",
+          title: "Invoice",
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="person" size={size} color={color} />
+            <Ionicons name="add-circle" size={size} color={color} />
           ),
         }}
       />

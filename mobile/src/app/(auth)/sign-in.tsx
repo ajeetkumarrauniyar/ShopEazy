@@ -24,23 +24,23 @@ export default function Page() {
   // Handle the submission of the sign-in form
   const onSignInPress = async () => {
     if (!isLoaded || isSubmitting) return;
-
+    
     // Form validation
     if (!emailAddress.trim() || !password.trim()) {
       setError("Please enter both email and password");
       return;
     }
-
+    
     setError("");
     setIsSubmitting(true);
-
+    
     // Start the sign-in process using the email and password provided
     try {
       const signInAttempt = await signIn.create({
         identifier: emailAddress,
         password,
       });
-
+      
       // If sign-in process is complete, set the created session as active
       // and redirect the user
       if (signInAttempt.status === "complete") {
@@ -72,9 +72,9 @@ export default function Page() {
         <View style={styles.formContainer}>
           <Text style={styles.title}>Welcome Back</Text>
           <Text style={styles.subtitle}>Sign in to continue</Text>
-
+          
           {error ? <Text style={styles.errorText}>{error}</Text> : null}
-
+          
           <View style={styles.inputContainer}>
             <Text style={styles.inputLabel}>Email or Username</Text>
             <TextInput
@@ -86,7 +86,7 @@ export default function Page() {
               style={styles.input}
             />
           </View>
-
+          
           <View style={styles.inputContainer}>
             <Text style={styles.inputLabel}>Password</Text>
             <TextInput
@@ -98,13 +98,13 @@ export default function Page() {
               style={styles.input}
             />
           </View>
-
+          
           <TouchableOpacity style={styles.forgotPassword}>
             <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
           </TouchableOpacity>
-
-          <TouchableOpacity
-            onPress={onSignInPress}
+          
+          <TouchableOpacity 
+            onPress={onSignInPress} 
             style={[styles.button, isSubmitting && styles.buttonDisabled]}
             disabled={isSubmitting}
           >
@@ -112,7 +112,7 @@ export default function Page() {
               {isSubmitting ? "Signing in..." : "Sign In"}
             </Text>
           </TouchableOpacity>
-
+          
           <View style={styles.linkContainer}>
             <Text style={styles.linkText}>Don't have an account?</Text>
             <Link href="/(auth)/sign-up" style={styles.link}>
