@@ -7,11 +7,11 @@ import { logger } from "./loggerUtil.ts";
  * Type for async request handler functions
  * This includes all parameter possibilities to make it more flexible
  */
-export type AsyncFunction =
+export type AsyncFunction<T extends Request = Request> =
   // Standard handler with all parameters
-  | ((req: Request, res: Response, next: NextFunction) => Promise<unknown>)
+  | ((req: T, res: Response, next: NextFunction) => Promise<unknown>)
   // Handler with just req and res
-  | ((req: Request, res: Response) => Promise<unknown>)
+  | ((req: T, res: Response) => Promise<unknown>)
   // Handler with no parameters (for simplified usage)
   | (() => Promise<unknown>);
 
@@ -25,13 +25,13 @@ export type AsyncFunction =
  * @throws unknown - If the function throws an unknown error, it will be converted to an ApiError
  */
 
-export const asyncHandler = (fn: AsyncFunction): RequestHandler => {
+export const asyncHandler = <T extends Request = Request>(fn: AsyncFunction<T>): RequestHandler => {
   return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       logger.info(`Processing ${req.method} request to ${req.originalUrl}`);
 
       // Execute the handler function with appropriate parameters
-      const result = await fn(req, res, next);
+      const result = await fn(req as T, res, next);
 
       // If response is already sent or a next() has been explicitly called
       if (res.headersSent) {
