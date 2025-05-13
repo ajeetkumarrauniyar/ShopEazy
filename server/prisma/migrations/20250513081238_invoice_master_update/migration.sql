@@ -1,0 +1,11 @@
+-- AlterTable
+ALTER TABLE "Invoice" ALTER COLUMN "dueDate" DROP NOT NULL,
+ALTER COLUMN "freightCharges" DROP NOT NULL,
+ALTER COLUMN "cgstAmount" DROP NOT NULL,
+ALTER COLUMN "sgstAmount" DROP NOT NULL,
+ALTER COLUMN "igstAmount" DROP NOT NULL,
+ALTER COLUMN "totalGstAmount" DROP NOT NULL;
+
+-- AlterTable
+ALTER TABLE "InvoiceItem" ALTER COLUMN "discountPercent" DROP NOT NULL,
+ALTER COLUMN "discountAmount" DROP NOT NULL;

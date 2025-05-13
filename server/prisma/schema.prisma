@@ -8,10 +8,159 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  password  String
-  name      String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt()
+  id          String   @id @default(cuid())
+  email       String   @unique
+  password    String
+  firstName   String?
+  lastName    String?
+  phoneNumber String?  @unique
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt()
+
+  salesInvoices    Invoice[]  @relation("SalesInvoices")
+  purchaseInvoices Invoice[]  @relation("PurchaseInvoices")
+}
+
+model ItemMaster {
+  id              String    @id @default(cuid())
+  itemCode        String    @unique
+  itemName        String
+  description     String?
+  hsnCode         String    // HSN Code
+  unit            String    // e.g., PCS, KG, MTR
+  cgstPercentage  Decimal   @db.Decimal(5, 2)
+  sgstPercentage  Decimal   @db.Decimal(5, 2)
+  igstPercentage  Decimal   @db.Decimal(5, 2)
+  
+  // Price Information
+  purchasePrice   Decimal   @db.Decimal(10, 2)
+  sellingPrice    Decimal   @db.Decimal(10, 2)
+  
+  // Inventory tracking
+  currentStock    Int       @default(0)
+  minimumStock    Int       @default(0)
+  
+  // Timestamps
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt()
+
+  // Relations
+  invoiceItems    InvoiceItem[]
+}
+
+model Invoice {
+  id                String    @id @default(cuid())
+  invoiceNumber     String    @unique
+  invoiceType       InvoiceType @default(SALES)
+  invoiceDate       DateTime  @default(now())
+  dueDate           DateTime?
+  status            InvoiceStatus @default(PENDING)
+  
+  // Party Details
+  partyName         String
+  partyGstin        String?
+  billingAddress    String
+  shippingAddress   String?
+  partyState        String
+  stateCode         String    // State code for GST
+  
+  // Amount Details
+  subTotal          Decimal   @db.Decimal(10, 2)
+  freightCharges    Decimal?   @db.Decimal(10, 2) @default(0)
+  
+  // GST Details
+  cgstAmount        Decimal?   @db.Decimal(10, 2) @default(0)
+  sgstAmount        Decimal?   @db.Decimal(10, 2) @default(0)
+  igstAmount        Decimal?   @db.Decimal(10, 2) @default(0)
+  totalGstAmount    Decimal?  @db.Decimal(10, 2) @default(0)
+  
+  roundOff          Decimal   @db.Decimal(10, 2) @default(0)
+  totalAmount       Decimal   @db.Decimal(10, 2)
+  
+  // Additional Details
+  purchaseOrderNo   String?
+  purchaseOrderDate DateTime?
+  deliveryChallanNo String?
+  transporterName   String?
+  vehicleNumber     String?
+  eWayBillNo        String?
+  
+  // Payment Details
+  paymentTerms      String?
+  paymentMode       PaymentMode @default(CASH)
+  paymentStatus     PaymentStatus @default(PENDING)
+  
+  // Additional Fields
+  notes             String?
+  termsAndConditions String?
+  
+  // Timestamps
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt()
+  
+  // Relations
+  seller            User?     @relation("SalesInvoices", fields: [sellerId], references: [id])
+  sellerId          String?
+  buyer             User?     @relation("PurchaseInvoices", fields: [buyerId], references: [id])
+  buyerId           String?
+  items             InvoiceItem[]
+}
+
+model InvoiceItem {
+  id              String    @id @default(cuid())
+  serialNumber    Int       // Serial number in invoice
+  
+  // Item Details from Master
+  item            ItemMaster @relation(fields: [itemId], references: [id])
+  itemId          String
+  
+  // Transaction Details
+  quantity        Decimal   @db.Decimal(10, 3)
+  unit            String    // Unit of measurement
+  unitPrice       Decimal   @db.Decimal(10, 2)
+  discountPercent Decimal?   @db.Decimal(5, 2) @default(0)
+  discountAmount  Decimal?   @db.Decimal(10, 2) @default(0)
+  amount          Decimal   @db.Decimal(10, 2)
+  
+  // GST Details
+  hsnCode         String
+  cgstPercentage  Decimal   @db.Decimal(5, 2)
+  cgstAmount      Decimal   @db.Decimal(10, 2)
+  sgstPercentage  Decimal   @db.Decimal(5, 2)
+  sgstAmount      Decimal   @db.Decimal(10, 2)
+  igstPercentage  Decimal   @db.Decimal(5, 2)
+  igstAmount      Decimal   @db.Decimal(10, 2)
+  
+  // Relations
+  Invoice         Invoice   @relation(fields: [invoiceId], references: [id])
+  invoiceId       String
+}
+
+enum InvoiceType {
+  SALES
+  PURCHASE
+}
+
+enum InvoiceStatus {
+  DRAFT
+  PENDING
+  COMPLETED
+  CANCELLED
+  OVERDUE
+}
+
+enum PaymentMode {
+  CASH
+  CHEQUE
+  BANK_TRANSFER
+  UPI
+  CREDIT_CARD
+  DEBIT_CARD
+}
+
+enum PaymentStatus {
+  PENDING
+  PARTIAL
+  COMPLETED
+  REFUNDED
 }

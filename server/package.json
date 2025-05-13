@@ -19,6 +19,7 @@
   "author": "Ajeet Kumar | IT_Maverick_Solutions",
   "license": "ISC",
   "dependencies": {
+    "@clerk/clerk-sdk-node": "^4.13.23",
     "@prisma/client": "^6.7.0",
     "cors": "^2.8.5",
     "dotenv": "^16.5.0",
