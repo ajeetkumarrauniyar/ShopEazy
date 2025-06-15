@@ -6,6 +6,7 @@ import {
 } from "@react-navigation/native";
 import { useFonts } from "expo-font";
 import { Slot, useRouter, useSegments } from "expo-router";
+import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
 import { KeyboardAvoidingView, Platform } from "react-native";
@@ -27,11 +28,15 @@ if (!CLERK_PUBLISHABLE_KEY) {
   throw new Error("Missing Clerk Publishable Key.");
 }
 
+// Prevent the splash screen from auto-hiding before we're ready
+SplashScreen.preventAutoHideAsync();
+
 export default function RootLayout() {
   const colorScheme = useColorScheme();
   const router = useRouter();
   const segments = useSegments();
   const [isOnboardingCompleted, setIsOnboardingCompleted] = useState<boolean | null>(null);
+  const [appIsReady, setAppIsReady] = useState(false);
   
   const [loaded] = useFonts({
     SpaceMono: require("../assets/fonts/SpaceMono-Regular.ttf"),
@@ -40,9 +45,15 @@ export default function RootLayout() {
   // Check onboarding status when app loads
   useEffect(() => {
     const initializeApp = async () => {
-      await loadSavedLanguage();
-      const completed = await checkOnboardingStatus();
-      setIsOnboardingCompleted(completed);
+      try {
+        await loadSavedLanguage();
+        const completed = await checkOnboardingStatus();
+        setIsOnboardingCompleted(completed);
+      } catch (error) {
+        console.error("Error initializing app:", error);
+      } finally {
+        setAppIsReady(true);
+      }
     };
 
     if (loaded) {
@@ -77,8 +88,19 @@ export default function RootLayout() {
     }
   }, [isOnboardingCompleted, segments]);
 
-  if (!loaded || isOnboardingCompleted === null) {
-    // Async font loading only occurs in development.
+  // Hide splash screen when app is ready
+  useEffect(() => {
+    const hideSplashScreen = async () => {
+      if (appIsReady && loaded && isOnboardingCompleted !== null) {
+        await SplashScreen.hideAsync();
+      }
+    };
+
+    hideSplashScreen();
+  }, [appIsReady, loaded, isOnboardingCompleted]);
+
+  if (!appIsReady || !loaded || isOnboardingCompleted === null) {
+    // Keep splash screen visible while loading
     return null;
   }
 

@@ -21,48 +21,81 @@ export default function SignInScreen() {
   const [otp, setOtp] = useState("");
   const [error, setError] = useState<string>("");
 
+  const handlePhoneNumberChange = (input: string) => {
+    const cleaned = input.trim();
+
+    if (!cleaned) {
+      setPhoneNumber("");
+      return;
+    }
+
+    if (cleaned.startsWith("+91")) {
+      setPhoneNumber(cleaned);
+      return;
+    }
+
+    setPhoneNumber(`+91${cleaned}`);
+  };
+  
   const handleSendOTP = async () => {
-    if (!phoneNumber) return;
+    if (!phoneNumber) {
+      console.log("❌ Phone OTP: Missing phone number");
+      return;
+    }
     setIsAuthenticating(true);
     try {
       await signIn?.create({
         strategy: "phone_code",
         identifier: phoneNumber,
       });
+      console.log("✅ Phone OTP: SignIn created, OTP sent to", phoneNumber);
       setOtpSent(true);
     } catch (err) {
-      console.error("Failed to send OTP:", err);
+      console.error("❌ Failed to send OTP:", err);
     } finally {
       setIsAuthenticating(false);
     }
   };
 
   const handleVerifyOTP = async () => {
-    if (!otp) return;
+    if (!otp) {
+      console.log("❌ Phone OTP: Missing OTP code");
+      return;
+    }
     setIsAuthenticating(true);
     try {
-      const result = await signIn?.attemptFirstFactor({
+      const completeSignIn = await signIn?.attemptFirstFactor({
         strategy: "phone_code",
         code: otp,
       });
-      if (result?.status === "complete") {
-        await setActive?.({ session: result.createdSessionId });
+      console.log("📋 Phone Verification - Status:", completeSignIn?.status);
+      
+      if (completeSignIn?.status === "complete") {
+        await setActive?.({ session: completeSignIn.createdSessionId });
+        console.log("✅ Phone signin complete, redirecting");
+      } else {
+        console.log("⚠️ Phone signin incomplete, status:", completeSignIn?.status);
       }
     } catch (err) {
-      console.error("Failed to verify OTP:", err);
+      console.error("❌ Failed to verify OTP:", err);
     } finally {
       setIsAuthenticating(false);
     }
   };
 
   const handleEmailSignIn = async () => {
-    if (!email || !userPassword) return;
+    if (!email || !userPassword) {
+      console.log("❌ Email signin: Missing email or password");
+      return;
+    }
 
     if (!email.trim() || !userPassword.trim()) {
+      console.log("❌ Email signin: Empty email or password");
       setError("Please enter both email and password");
       return;
     }
 
+    console.log("🔄 Email signin: Attempting with email:", email);
     setError("");
     setIsAuthenticating(true);
     try {
@@ -70,11 +103,16 @@ export default function SignInScreen() {
         identifier: email,
         password: userPassword,
       });
+      console.log("📋 Email signin - Status:", result?.status);
+      
       if (result?.status === "complete") {
         await setActive?.({ session: result.createdSessionId });
+        console.log("✅ Email signin complete, redirecting");
+      } else {
+        console.log("⚠️ Email signin incomplete, status:", result?.status);
       }
     } catch (err) {
-      console.error("Failed to sign in:", err);
+      console.error("❌ Failed to sign in:", err);
     } finally {
       setIsAuthenticating(false);
     }
@@ -106,7 +144,7 @@ export default function SignInScreen() {
                   value={phoneNumber}
                   placeholder={i18n.t("auth.mobileNumberPlaceholder")}
                   keyboardType="phone-pad"
-                  onChangeText={setPhoneNumber}
+                  onChangeText={handlePhoneNumberChange}
                   containerStyle={styles.input}
                 />
 
