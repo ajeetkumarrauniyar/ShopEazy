@@ -2,6 +2,7 @@ import { ThemedText } from "@/components/ThemedText";
 import { BodyScrollView } from "@/components/ui/BodyScrollView";
 import { Button } from "@/components/ui/Button";
 import { TextInput } from "@/components/ui/TextInput";
+import i18n from "@/config/i18n";
 import { COLORS } from "@/constants/index";
 import { useSignUp } from "@clerk/clerk-expo";
 import { Link, useRouter } from "expo-router";
@@ -9,38 +10,54 @@ import React, { useState } from "react";
 import { StyleSheet, View } from "react-native";
 
 export default function SignUpScreen() {
-  const { signUp, setActive, isLoaded } = useSignUp();
+  const { signUp, setActive } = useSignUp();
   const router = useRouter();
 
-  const [phoneNumber, setPhoneNumber] = useState("+918084840429");
-  const [email, setEmail] = useState("ajeetkumarrauniyar@gmail.com");
-  const [password, setPassword] = useState("Aj#cool$00");
-  const [confirmPassword, setConfirmPassword] = useState("Aj#cool$00");
-  const [fullName, setFullName] = useState("Ajeet Kumar");
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [fullName, setFullName] = useState(""); // Common state for both modes
   const [isEmailMode, setIsEmailMode] = useState(false);
   const [otpSent, setOtpSent] = useState(false);
   const [otp, setOtp] = useState("");
   const [isRegistering, setIsRegistering] = useState(false);
+
+  const handlePhoneNumberChange = (input: string) => {
+    const cleaned = input.trim();
+
+    if (!cleaned) {
+      setPhoneNumber("");
+      return;
+    }
+
+    if (cleaned.startsWith("+91")) {
+      setPhoneNumber(cleaned);
+      return;
+    }
+
+    setPhoneNumber(`+91${cleaned}`);
+  };
 
   const handleSendPhoneOTP = async () => {
     if (!phoneNumber || !fullName) {
       console.log("❌ Phone OTP: Missing required fields");
       return;
     }
-    
+
     setIsRegistering(true);
-    
+
     try {
       await signUp?.create({
         phoneNumber: phoneNumber,
       });
       console.log("✅ Phone OTP: SignUp created");
-      
+
       await signUp?.preparePhoneNumberVerification({
         strategy: "phone_code",
       });
       console.log("✅ Phone OTP: Verification prepared, OTP sent");
-      
+
       setOtpSent(true);
     } catch (err) {
       console.error("❌ Phone OTP Error:", err);
@@ -51,44 +68,57 @@ export default function SignUpScreen() {
 
   const handlePhoneVerification = async () => {
     if (!otp) return;
-    
+
     setIsRegistering(true);
-    
+
     try {
       const completeSignUp = await signUp?.attemptPhoneNumberVerification({
         code: otp,
       });
 
       console.log("📋 Phone Verification - Status:", completeSignUp?.status);
-      console.log("📋 Phone Verification - Missing fields:", completeSignUp?.missingFields);
+      console.log(
+        "📋 Phone Verification - Missing fields:",
+        completeSignUp?.missingFields
+      );
 
       if (completeSignUp?.status === "complete") {
         await setActive?.({ session: completeSignUp?.createdSessionId });
         console.log("✅ Phone signup complete, redirecting");
         router.replace("/(protected)");
-      } else if (completeSignUp?.status === "missing_requirements" && 
-                 completeSignUp?.missingFields?.includes("password")) {
+      } else if (
+        completeSignUp?.status === "missing_requirements" &&
+        completeSignUp?.missingFields?.includes("password")
+      ) {
         console.log("🔧 Phone signup missing password, auto-generating...");
-        
-        const autoPassword = `Phone${Date.now()}!${Math.random().toString(36).slice(2)}`;
-        
+
+        const autoPassword = `Phone${Date.now()}!${Math.random()
+          .toString(36)
+          .slice(2)}`;
+
         try {
           const updatedSignUp = await signUp?.update({
             password: autoPassword,
           });
-          
+
           if (updatedSignUp?.status === "complete") {
             await setActive?.({ session: updatedSignUp?.createdSessionId });
             console.log("✅ Phone signup complete after password update");
             router.replace("/(protected)");
           } else {
-            console.log("⚠️ Phone signup still incomplete:", updatedSignUp?.status);
+            console.log(
+              "⚠️ Phone signup still incomplete:",
+              updatedSignUp?.status
+            );
           }
         } catch (updateErr) {
           console.error("❌ Phone signup password update failed:", updateErr);
         }
       } else {
-        console.log("⚠️ Phone signup incomplete, status:", completeSignUp?.status);
+        console.log(
+          "⚠️ Phone signup incomplete, status:",
+          completeSignUp?.status
+        );
       }
     } catch (err) {
       console.error("❌ Phone verification failed:", err);
@@ -102,9 +132,9 @@ export default function SignUpScreen() {
       console.log("❌ Email signup: Validation failed");
       return;
     }
-    
+
     setIsRegistering(true);
-    
+
     try {
       await signUp?.create({
         emailAddress: email,
@@ -116,7 +146,7 @@ export default function SignUpScreen() {
         strategy: "email_code",
       });
       console.log("✅ Email signup: Verification prepared, OTP sent");
-      
+
       setOtpSent(true);
     } catch (err) {
       console.error("❌ Email signup error:", err);
@@ -127,9 +157,9 @@ export default function SignUpScreen() {
 
   const handleEmailVerification = async () => {
     if (!otp) return;
-    
+
     setIsRegistering(true);
-    
+
     try {
       const completeSignUp = await signUp?.attemptEmailAddressVerification({
         code: otp,
@@ -142,7 +172,10 @@ export default function SignUpScreen() {
         console.log("✅ Email signup complete, redirecting");
         router.replace("/(protected)");
       } else {
-        console.log("⚠️ Email signup incomplete, status:", completeSignUp?.status);
+        console.log(
+          "⚠️ Email signup incomplete, status:",
+          completeSignUp?.status
+        );
       }
     } catch (err) {
       console.error("❌ Email verification failed:", err);
@@ -162,12 +195,12 @@ export default function SignUpScreen() {
     <BodyScrollView contentContainerStyle={styles.container}>
       {/* App Logo */}
       <ThemedText type="title" style={styles.logo}>
-        RuralLedger
+        {i18n.t("welcome.title")}
       </ThemedText>
 
       {/* Tagline */}
       <ThemedText type="subtitle" style={styles.tagline}>
-        अपना खाता बनाएं
+        {i18n.t("auth.createAccount")}
       </ThemedText>
 
       <View style={styles.formContainer}>
@@ -175,9 +208,9 @@ export default function SignUpScreen() {
         <TextInput
           variant="filled"
           size="lg"
-          label="पूरा नाम"
+          label={i18n.t("auth.fullName")}
           value={fullName}
-          placeholder="अपना पूरा नाम डालें"
+          placeholder={i18n.t("auth.fullNamePlaceholder")}
           onChangeText={setFullName}
           containerStyle={styles.input}
         />
@@ -190,11 +223,11 @@ export default function SignUpScreen() {
                 <TextInput
                   variant="filled"
                   size="lg"
-                  label="मोबाइल नंबर"
+                  label={i18n.t("auth.mobileNumber")}
                   value={phoneNumber}
-                  placeholder="अपना मोबाइल नंबर डालें"
+                  placeholder={i18n.t("auth.mobileNumberPlaceholder")}
                   keyboardType="phone-pad"
-                  onChangeText={setPhoneNumber}
+                  onChangeText={handlePhoneNumberChange}
                   containerStyle={styles.input}
                 />
                 <Button
@@ -204,7 +237,7 @@ export default function SignUpScreen() {
                   style={styles.button}
                   disabled={!phoneNumber || !fullName || isRegistering}
                 >
-                  OTP भेजें
+                  {i18n.t("auth.sendOtp")}
                 </Button>
               </>
             ) : (
@@ -214,7 +247,7 @@ export default function SignUpScreen() {
                   size="lg"
                   label="OTP"
                   value={otp}
-                  placeholder="OTP डालें"
+                  placeholder={i18n.t("auth.otpPlaceholder")}
                   keyboardType="number-pad"
                   onChangeText={setOtp}
                   containerStyle={styles.input}
@@ -226,7 +259,7 @@ export default function SignUpScreen() {
                   style={styles.button}
                   disabled={!otp || isRegistering}
                 >
-                  रजिस्टर करें
+                  {i18n.t("auth.register")}
                 </Button>
               </>
             )}
@@ -239,9 +272,9 @@ export default function SignUpScreen() {
                 <TextInput
                   variant="filled"
                   size="lg"
-                  label="ईमेल"
+                  label={i18n.t("auth.email")}
                   value={email}
-                  placeholder="अपना ईमेल डालें"
+                  placeholder={i18n.t("auth.emailPlaceholder")}
                   autoCapitalize="none"
                   autoComplete="email"
                   keyboardType="email-address"
@@ -252,9 +285,9 @@ export default function SignUpScreen() {
                 <TextInput
                   variant="filled"
                   size="lg"
-                  label="पासवर्ड"
+                  label={i18n.t("auth.password")}
                   value={password}
-                  placeholder="पासवर्ड डालें"
+                  placeholder={i18n.t("auth.passwordPlaceholder")}
                   onChangeText={setPassword}
                   secureTextEntry
                   containerStyle={styles.input}
@@ -263,9 +296,9 @@ export default function SignUpScreen() {
                 <TextInput
                   variant="filled"
                   size="lg"
-                  label="पासवर्ड की पुष्टि करें"
+                  label={i18n.t("auth.confirmPassword")}
                   value={confirmPassword}
-                  placeholder="पासवर्ड दोबारा डालें"
+                  placeholder={i18n.t("auth.confirmPasswordPlaceholder")}
                   onChangeText={setConfirmPassword}
                   secureTextEntry
                   containerStyle={styles.input}
@@ -285,7 +318,7 @@ export default function SignUpScreen() {
                     isRegistering
                   }
                 >
-                  OTP भेजें
+                  {i18n.t("auth.sendOtp")}
                 </Button>
               </>
             ) : (
@@ -293,9 +326,9 @@ export default function SignUpScreen() {
                 <TextInput
                   variant="filled"
                   size="lg"
-                  label="ईमेल OTP"
+                  label={i18n.t("auth.emailOtp")}
                   value={otp}
-                  placeholder="ईमेल से मिला OTP डालें"
+                  placeholder={i18n.t("auth.emailOtpPlaceholder")}
                   keyboardType="number-pad"
                   onChangeText={setOtp}
                   containerStyle={styles.input}
@@ -307,7 +340,7 @@ export default function SignUpScreen() {
                   style={styles.button}
                   disabled={!otp || isRegistering}
                 >
-                  रजिस्टर करें
+                  {i18n.t("auth.register")}
                 </Button>
               </>
             )}
@@ -317,7 +350,7 @@ export default function SignUpScreen() {
 
       {/* Alternative Registration Methods */}
       <View style={styles.alternativeContainer}>
-        <ThemedText style={styles.orText}>या</ThemedText>
+        <ThemedText style={styles.orText}>{i18n.t("auth.or")}</ThemedText>
 
         <Button
           variant="outline"
@@ -325,22 +358,22 @@ export default function SignUpScreen() {
           onPress={switchMode}
           style={styles.button}
         >
-          {isEmailMode ? "मोबाइल नंबर से रजिस्टर करें" : "ईमेल से रजिस्टर करें"}
+          {isEmailMode ? i18n.t("auth.signUpWithMobile") : i18n.t("auth.signUpWithEmail")}
         </Button>
       </View>
 
       {/* Sign In Section */}
       <View style={styles.signInContainer}>
-        <ThemedText>पहले से खाता है? </ThemedText>
+        <ThemedText>{i18n.t("auth.alreadyHaveAccount")}</ThemedText>
         <Link href="/">
-          <ThemedText style={styles.signInText}>लॉगिन करें</ThemedText>
+          <ThemedText style={styles.signInText}>{i18n.t("auth.signIn")}</ThemedText>
         </Link>
       </View>
 
       {/* Support Section */}
       <View style={styles.supportContainer}>
         <Button variant="ghost" onPress={() => {}} style={styles.supportButton}>
-          मदद चाहिए?
+          {i18n.t("auth.needHelp")}
         </Button>
       </View>
     </BodyScrollView>

@@ -1,6 +1,20 @@
-import { Stack } from "expo-router";
+import { useAuth } from "@clerk/clerk-expo";
+import { Redirect, Stack } from "expo-router";
 
 export default function ProtectedLayout() {
+  const { isLoaded, isSignedIn } = useAuth();
+
+  // Show loading screen while auth is being checked
+  if (!isLoaded) {
+    return null;
+  }
+
+  // Redirect to login if not signed in
+  if (!isSignedIn) {
+    console.log("❌ User not signed in. Redirecting to login...");
+    return <Redirect href="/(auth)" />;
+  }
+
   return (
     <Stack
       screenOptions={{
@@ -12,7 +26,6 @@ export default function ProtectedLayout() {
               headerLargeTitleShadowVisible: false,
               headerShadowVisible: true,
               headerLargeStyle: {
-                // NEW: Make the large title transparent to match the background.
                 backgroundColor: "transparent",
               },
             }

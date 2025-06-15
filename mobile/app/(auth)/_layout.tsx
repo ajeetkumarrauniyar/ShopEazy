@@ -1,7 +1,5 @@
-import { ThemedText } from "@/components/ThemedText";
 import { useAuth } from "@clerk/clerk-expo";
 import { Redirect, Stack } from "expo-router";
-import { StyleSheet, View } from "react-native";
 
 export default function AuthLayout() {
   const { isLoaded, isSignedIn } = useAuth();
@@ -14,6 +12,7 @@ export default function AuthLayout() {
     console.log("✅ User is signed in. Redirecting to protected route...");
     return <Redirect href={"/(protected)"} />;
   }
+  
   return (
     <Stack
       screenOptions={{
@@ -48,14 +47,14 @@ export default function AuthLayout() {
         name="index"
         options={{
           headerTitle: "signIn",
-          headerShown: false, // Hide header for main sign-in screen
+          headerShown: false,
         }}
       />
       <Stack.Screen
         name="sign-up"
         options={{
           headerTitle: "signUp",
-          headerBackTitle: "back", // Simple back button text
+          headerBackTitle: "back",
         }}
       />
       <Stack.Screen

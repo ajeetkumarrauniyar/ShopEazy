@@ -1,13 +1,14 @@
+import { ThemedText } from "@/components/ThemedText";
 import React from "react";
 import {
-  ActivityIndicator,
-  Pressable,
-  StyleSheet,
-  TextStyle,
-  useColorScheme,
-  ViewStyle,
+    ActivityIndicator,
+    Pressable,
+    StyleSheet,
+    TextStyle,
+    useColorScheme,
+    View,
+    ViewStyle,
 } from "react-native";
-import { ThemedText } from "@/components/ThemedText";
 
 type ButtonVariant = "filled" | "outline" | "ghost";
 type ButtonSize = "sm" | "md" | "lg";
@@ -124,9 +125,14 @@ export const Button: React.FC<ButtonProps> = ({
         style,
       ]}
     >
-      {loading ? (
-        <ActivityIndicator color={getTextColor()} />
-      ) : (
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
+        {loading && (
+          <ActivityIndicator 
+            color={getTextColor()} 
+            size="small" 
+            style={{ marginRight: 8 }} 
+          />
+        )}
         <ThemedText
           style={StyleSheet.flatten([
             {
@@ -141,7 +147,7 @@ export const Button: React.FC<ButtonProps> = ({
         >
           {children}
         </ThemedText>
-      )}
+      </View>
     </Pressable>
   );
 };

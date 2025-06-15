@@ -2,15 +2,15 @@ import { ThemedText } from "@/components/ThemedText";
 import { BodyScrollView } from "@/components/ui/BodyScrollView";
 import { Button } from "@/components/ui/Button";
 import { TextInput } from "@/components/ui/TextInput";
+import i18n from "@/config/i18n";
 import { COLORS } from "@/constants/index";
 import { useSignIn } from "@clerk/clerk-expo";
-import { Link, useRouter } from "expo-router";
+import { Link } from "expo-router";
 import React, { useState } from "react";
-import { StyleSheet, View } from "react-native";
+import { StatusBar, StyleSheet, TouchableOpacity, View } from "react-native";
 
 export default function SignInScreen() {
-  const { signIn, setActive, isLoaded } = useSignIn();
-  const router = useRouter();
+  const { signIn, setActive } = useSignIn();
 
   const [phoneNumber, setPhoneNumber] = useState("");
   const [email, setEmail] = useState("");
@@ -57,6 +57,13 @@ export default function SignInScreen() {
 
   const handleEmailSignIn = async () => {
     if (!email || !userPassword) return;
+
+    if (!email.trim() || !userPassword.trim()) {
+      setError("Please enter both email and password");
+      return;
+    }
+
+    setError("");
     setIsAuthenticating(true);
     try {
       const result = await signIn?.create({
@@ -75,14 +82,15 @@ export default function SignInScreen() {
 
   return (
     <BodyScrollView contentContainerStyle={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
       {/* App Logo */}
       <ThemedText type="title" style={styles.logo}>
-        RuralLedger
+        {i18n.t("welcome.title")}
       </ThemedText>
 
       {/* Tagline */}
       <ThemedText type="subtitle" style={styles.tagline}>
-        आसान बिल, आसान हिसाब
+        {i18n.t("auth.tagline")}
       </ThemedText>
 
       <View style={styles.formContainer}>
@@ -94,13 +102,14 @@ export default function SignInScreen() {
                 <TextInput
                   variant="filled"
                   size="lg"
-                  label="मोबाइल नंबर"
+                  label={`${i18n.t("auth.mobileNumber")}`}
                   value={phoneNumber}
-                  placeholder="अपना मोबाइल नंबर डालें"
+                  placeholder={i18n.t("auth.mobileNumberPlaceholder")}
                   keyboardType="phone-pad"
                   onChangeText={setPhoneNumber}
                   containerStyle={styles.input}
                 />
+
                 <Button
                   size="lg"
                   onPress={handleSendOTP}
@@ -108,7 +117,7 @@ export default function SignInScreen() {
                   style={styles.button}
                   disabled={!phoneNumber || isAuthenticating}
                 >
-                  OTP भेजें
+                  {i18n.t("auth.sendOtp")}
                 </Button>
               </>
             ) : (
@@ -118,11 +127,12 @@ export default function SignInScreen() {
                   size="lg"
                   label="OTP"
                   value={otp}
-                  placeholder="OTP डालें"
+                  placeholder={i18n.t("auth.otpPlaceholder")}
                   keyboardType="number-pad"
                   onChangeText={setOtp}
                   containerStyle={styles.input}
                 />
+
                 <Button
                   size="lg"
                   onPress={handleVerifyOTP}
@@ -130,7 +140,7 @@ export default function SignInScreen() {
                   style={styles.button}
                   disabled={!otp || isAuthenticating}
                 >
-                  OTP से लॉगिन करें
+                  {i18n.t("auth.loginWithOtp")}
                 </Button>
               </>
             )}
@@ -169,19 +179,27 @@ export default function SignInScreen() {
               style={styles.button}
               disabled={!email || !userPassword || isAuthenticating}
             >
-              लॉगिन करें
+              {isAuthenticating
+                ? i18n.t("auth.loggingIn")
+                : i18n.t("auth.login")}
             </Button>
 
-            <Link href="/reset-password" style={styles.forgotPassword}>
-              <ThemedText style={styles.linkText}>पासवर्ड भूल गए?</ThemedText>
-            </Link>
+            {/* Forgot Password Section */}
+
+            <TouchableOpacity style={styles.forgotPassword} activeOpacity={0.7}>
+              <Link href="/reset-password" style={styles.forgotPassword}>
+                <ThemedText style={styles.linkText}>
+                  {i18n.t("auth.forgotPassword")}
+                </ThemedText>
+              </Link>
+            </TouchableOpacity>
           </>
         )}
       </View>
 
       {/* Alternative Login Methods */}
       <View style={styles.alternativeContainer}>
-        <ThemedText style={styles.orText}>या</ThemedText>
+        <ThemedText style={styles.orText}>{i18n.t("auth.or")}</ThemedText>
 
         <Button
           variant="outline"
@@ -189,7 +207,9 @@ export default function SignInScreen() {
           onPress={() => setIsEmailMode(!isEmailMode)}
           style={styles.button}
         >
-          {isEmailMode ? "मोबाइल नंबर से लॉगिन करें" : "ईमेल से लॉगिन करें"}
+          {isEmailMode
+            ? i18n.t("auth.loginWithMobile")
+            : i18n.t("auth.loginWithEmail")}
         </Button>
       </View>
 
@@ -201,16 +221,18 @@ export default function SignInScreen() {
 
       {/* Sign Up Section */}
       <View style={styles.signUpContainer}>
-        <ThemedText>खाता नहीं है? </ThemedText>
+        <ThemedText>{i18n.t("auth.noAccount")}</ThemedText>
         <Link href="/sign-up">
-          <ThemedText style={styles.signUpText}>साइन अप करें</ThemedText>
+          <ThemedText style={styles.signUpText}>
+            {i18n.t("auth.signUp")}
+          </ThemedText>
         </Link>
       </View>
 
       {/* Support Section */}
       <View style={styles.supportContainer}>
         <Button variant="ghost" onPress={() => {}} style={styles.supportButton}>
-          मदद चाहिए?
+          {i18n.t("auth.needHelp")}
         </Button>
       </View>
     </BodyScrollView>
@@ -261,6 +283,7 @@ const styles = StyleSheet.create({
   forgotPassword: {
     marginTop: 15,
     alignSelf: "center",
+    marginBottom: 24,
   },
   linkText: {
     color: COLORS.light.tint,

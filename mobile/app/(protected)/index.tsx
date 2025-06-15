@@ -2,18 +2,18 @@ import { ThemedText } from "@/components/ThemedText";
 import { Button } from "@/components/ui/Button";
 import { View } from "react-native";
 import { useAuth } from "@clerk/clerk-expo";
-import { useRouter } from "expo-router";
 
 export default function HomeScreen() {
   const { signOut } = useAuth();
-  const router = useRouter();
 
   const handleLogout = async () => {
     try {
+      console.log("🔄 Logging out user...");
       await signOut();
-      router.replace("/"); // Redirect to login screen
+      console.log("✅ User logged out successfully");
+      // No need to manually navigate - the protected layout will handle the redirect
     } catch (error) {
-      console.error("Logout failed:", error);
+      console.error("❌ Logout failed:", error);
     }
   };
 
