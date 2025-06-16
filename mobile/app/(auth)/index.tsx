@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/Button";
 import { TextInput } from "@/components/ui/TextInput";
 import i18n from "@/config/i18n";
 import { COLORS } from "@/constants/index";
+import { useAuthError } from "@/utils/errorHandler";
 import { useSignIn } from "@clerk/clerk-expo";
 import { Link } from "expo-router";
 import React, { useState } from "react";
@@ -11,6 +12,7 @@ import { StatusBar, StyleSheet, TouchableOpacity, View } from "react-native";
 
 export default function SignInScreen() {
   const { signIn, setActive } = useSignIn();
+  const { error, setCustomError, setClerkError, clearError, hasError } = useAuthError();
 
   const [phoneNumber, setPhoneNumber] = useState("");
   const [email, setEmail] = useState("");
@@ -19,7 +21,6 @@ export default function SignInScreen() {
   const [isEmailMode, setIsEmailMode] = useState(false);
   const [otpSent, setOtpSent] = useState(false);
   const [otp, setOtp] = useState("");
-  const [error, setError] = useState<string>("");
 
   const handlePhoneNumberChange = (input: string) => {
     const cleaned = input.trim();
@@ -36,13 +37,16 @@ export default function SignInScreen() {
 
     setPhoneNumber(`+91${cleaned}`);
   };
-  
+
   const handleSendOTP = async () => {
     if (!phoneNumber) {
-      console.log("❌ Phone OTP: Missing phone number");
+      setCustomError("Please enter your phone number");
       return;
     }
+    
+    clearError();
     setIsAuthenticating(true);
+    
     try {
       await signIn?.create({
         strategy: "phone_code",
@@ -52,6 +56,7 @@ export default function SignInScreen() {
       setOtpSent(true);
     } catch (err) {
       console.error("❌ Failed to send OTP:", err);
+      setClerkError(err);
     } finally {
       setIsAuthenticating(false);
     }
@@ -59,10 +64,13 @@ export default function SignInScreen() {
 
   const handleVerifyOTP = async () => {
     if (!otp) {
-      console.log("❌ Phone OTP: Missing OTP code");
+      setCustomError("Please enter the OTP code");
       return;
     }
+    
+    clearError();
     setIsAuthenticating(true);
+    
     try {
       const completeSignIn = await signIn?.attemptFirstFactor({
         strategy: "phone_code",
@@ -75,9 +83,11 @@ export default function SignInScreen() {
         console.log("✅ Phone signin complete, redirecting");
       } else {
         console.log("⚠️ Phone signin incomplete, status:", completeSignIn?.status);
+        setCustomError("Sign in incomplete. Please try again.");
       }
     } catch (err) {
       console.error("❌ Failed to verify OTP:", err);
+      setClerkError(err);
     } finally {
       setIsAuthenticating(false);
     }
@@ -85,19 +95,19 @@ export default function SignInScreen() {
 
   const handleEmailSignIn = async () => {
     if (!email || !userPassword) {
-      console.log("❌ Email signin: Missing email or password");
+      setCustomError("Please enter both email and password");
       return;
     }
 
     if (!email.trim() || !userPassword.trim()) {
-      console.log("❌ Email signin: Empty email or password");
-      setError("Please enter both email and password");
+      setCustomError("Please enter both email and password");
       return;
     }
 
     console.log("🔄 Email signin: Attempting with email:", email);
-    setError("");
+    clearError();
     setIsAuthenticating(true);
+    
     try {
       const result = await signIn?.create({
         identifier: email,
@@ -110,9 +120,11 @@ export default function SignInScreen() {
         console.log("✅ Email signin complete, redirecting");
       } else {
         console.log("⚠️ Email signin incomplete, status:", result?.status);
+        setCustomError("Sign in incomplete. Please try again.");
       }
     } catch (err) {
       console.error("❌ Failed to sign in:", err);
+      setClerkError(err);
     } finally {
       setIsAuthenticating(false);
     }
@@ -251,11 +263,11 @@ export default function SignInScreen() {
         </Button>
       </View>
 
-      {error ? (
+      {hasError && (
         <View style={styles.errorContainer}>
-          <ThemedText style={styles.errorText}>{error}</ThemedText>
+          <ThemedText style={styles.errorText}>{error?.message}</ThemedText>
         </View>
-      ) : null}
+      )}
 
       {/* Sign Up Section */}
       <View style={styles.signUpContainer}>

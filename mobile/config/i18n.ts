@@ -51,7 +51,13 @@ const translations = {
       signUpWithEmail: "Sign Up with Email",
       signUpWithMobile: "Sign Up with Mobile",
       alreadyHaveAccount: "Already have an account? ",
-      signIn: "Sign In"
+      signIn: "Sign In",
+      
+      // Verification Screen
+      verifyEmail: "Verify Email",
+      verificationCodeSent: "We've sent a verification code to",
+      didntReceiveCode: "Didn't receive the code?",
+      resendCode: "Resend Code"
     }
   },
   hi: {
@@ -102,7 +108,13 @@ const translations = {
       signUpWithEmail: "ईमेल से रजिस्टर करें",
       signUpWithMobile: "मोबाइल नंबर से रजिस्टर करें",
       alreadyHaveAccount: "पहले से खाता है? ",
-      signIn: "लॉगिन करें"
+      signIn: "लॉगिन करें",
+      
+      // Verification Screen
+      verifyEmail: "ईमेल वेरिफाई करें",
+      verificationCodeSent: "हमने वेरिफिकेशन कोड भेजा है",
+      didntReceiveCode: "कोड नहीं मिला?",
+      resendCode: "कोड फिर से भेजें"
     }
   }
 };

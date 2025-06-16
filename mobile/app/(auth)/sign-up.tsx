@@ -4,14 +4,16 @@ import { Button } from "@/components/ui/Button";
 import { TextInput } from "@/components/ui/TextInput";
 import i18n from "@/config/i18n";
 import { COLORS } from "@/constants/index";
+import { useAuthError } from "@/utils/errorHandler";
 import { useSignUp } from "@clerk/clerk-expo";
 import { Link, useRouter } from "expo-router";
 import React, { useState } from "react";
-import { StyleSheet, View } from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 export default function SignUpScreen() {
   const { signUp, setActive } = useSignUp();
   const router = useRouter();
+  const { error, setCustomError, setClerkError, clearError, hasError } = useAuthError();
 
   const [phoneNumber, setPhoneNumber] = useState("");
   const [email, setEmail] = useState("");
@@ -41,10 +43,11 @@ export default function SignUpScreen() {
 
   const handleSendPhoneOTP = async () => {
     if (!phoneNumber || !fullName) {
-      console.log("❌ Phone OTP: Missing required fields");
+      setCustomError("Please fill in all required fields");
       return;
     }
 
+    clearError();
     setIsRegistering(true);
 
     try {
@@ -61,14 +64,19 @@ export default function SignUpScreen() {
       setOtpSent(true);
     } catch (err) {
       console.error("❌ Phone OTP Error:", err);
+      setClerkError(err);
     } finally {
       setIsRegistering(false);
     }
   };
 
   const handlePhoneVerification = async () => {
-    if (!otp) return;
+    if (!otp) {
+      setCustomError("Please enter the verification code");
+      return;
+    }
 
+    clearError();
     setIsRegistering(true);
 
     try {
@@ -77,10 +85,6 @@ export default function SignUpScreen() {
       });
 
       console.log("📋 Phone Verification - Status:", completeSignUp?.status);
-      console.log(
-        "📋 Phone Verification - Missing fields:",
-        completeSignUp?.missingFields
-      );
 
       if (completeSignUp?.status === "complete") {
         await setActive?.({ session: completeSignUp?.createdSessionId });
@@ -106,33 +110,37 @@ export default function SignUpScreen() {
             console.log("✅ Phone signup complete after password update");
             router.replace("/(protected)");
           } else {
-            console.log(
-              "⚠️ Phone signup still incomplete:",
-              updatedSignUp?.status
-            );
+            console.log("⚠️ Phone signup still incomplete:", updatedSignUp?.status);
+            setCustomError("Registration incomplete. Please try again.");
           }
         } catch (updateErr) {
           console.error("❌ Phone signup password update failed:", updateErr);
+          setClerkError(updateErr);
         }
       } else {
-        console.log(
-          "⚠️ Phone signup incomplete, status:",
-          completeSignUp?.status
-        );
+        console.log("⚠️ Phone signup incomplete, status:", completeSignUp?.status);
+        setCustomError("Registration incomplete. Please try again.");
       }
     } catch (err) {
       console.error("❌ Phone verification failed:", err);
+      setClerkError(err);
     } finally {
       setIsRegistering(false);
     }
   };
 
   const handleEmailSignUp = async () => {
-    if (!email || !password || !fullName || password !== confirmPassword) {
-      console.log("❌ Email signup: Validation failed");
+    if (!email || !password || !fullName) {
+      setCustomError("Please fill in all required fields");
+      return;
+    }
+    
+    if (password !== confirmPassword) {
+      setCustomError("Passwords do not match");
       return;
     }
 
+    clearError();
     setIsRegistering(true);
 
     try {
@@ -150,14 +158,19 @@ export default function SignUpScreen() {
       setOtpSent(true);
     } catch (err) {
       console.error("❌ Email signup error:", err);
+      setClerkError(err);
     } finally {
       setIsRegistering(false);
     }
   };
 
   const handleEmailVerification = async () => {
-    if (!otp) return;
+    if (!otp) {
+      setCustomError("Please enter the verification code");
+      return;
+    }
 
+    clearError();
     setIsRegistering(true);
 
     try {
@@ -172,13 +185,31 @@ export default function SignUpScreen() {
         console.log("✅ Email signup complete, redirecting");
         router.replace("/(protected)");
       } else {
-        console.log(
-          "⚠️ Email signup incomplete, status:",
-          completeSignUp?.status
-        );
+        console.log("⚠️ Email signup incomplete, status:", completeSignUp?.status);
+        setCustomError("Registration incomplete. Please try again.");
       }
     } catch (err) {
       console.error("❌ Email verification failed:", err);
+      setClerkError(err);
+    } finally {
+      setIsRegistering(false);
+    }
+  };
+
+  const handleResendCode = async () => {
+    if (!isEmailMode) return;
+
+    clearError();
+    setIsRegistering(true);
+
+    try {
+      await signUp?.prepareEmailAddressVerification({
+        strategy: "email_code",
+      });
+      console.log("✅ Email OTP resent");
+    } catch (err) {
+      console.error("❌ Email OTP resend error:", err);
+      setClerkError(err);
     } finally {
       setIsRegistering(false);
     }
@@ -204,22 +235,21 @@ export default function SignUpScreen() {
       </ThemedText>
 
       <View style={styles.formContainer}>
-        {/* Full Name - Common for both modes */}
-        <TextInput
-          variant="filled"
-          size="lg"
-          label={i18n.t("auth.fullName")}
-          value={fullName}
-          placeholder={i18n.t("auth.fullNamePlaceholder")}
-          onChangeText={setFullName}
-          containerStyle={styles.input}
-        />
-
         {!isEmailMode ? (
           // Phone OTP Registration (NO PASSWORD FIELDS)
           <>
             {!otpSent ? (
               <>
+                {/* Full Name - Only show during initial signup */}
+                <TextInput
+                  variant="filled"
+                  size="lg"
+                  label={i18n.t("auth.fullName")}
+                  value={fullName}
+                  placeholder={i18n.t("auth.fullNamePlaceholder")}
+                  onChangeText={setFullName}
+                  containerStyle={styles.input}
+                />
                 <TextInput
                   variant="filled"
                   size="lg"
@@ -269,6 +299,16 @@ export default function SignUpScreen() {
           <>
             {!otpSent ? (
               <>
+                {/* Full Name - Only show during initial signup */}
+                <TextInput
+                  variant="filled"
+                  size="lg"
+                  label={i18n.t("auth.fullName")}
+                  value={fullName}
+                  placeholder={i18n.t("auth.fullNamePlaceholder")}
+                  onChangeText={setFullName}
+                  containerStyle={styles.input}
+                />
                 <TextInput
                   variant="filled"
                   size="lg"
@@ -323,6 +363,11 @@ export default function SignUpScreen() {
               </>
             ) : (
               <>
+                <Text style={styles.title}>{i18n.t("auth.verifyEmail")}</Text>
+                <Text style={styles.subtitle}>
+                  {i18n.t("auth.verificationCodeSent")} {email}
+                </Text>
+
                 <TextInput
                   variant="filled"
                   size="lg"
@@ -342,6 +387,13 @@ export default function SignUpScreen() {
                 >
                   {i18n.t("auth.register")}
                 </Button>
+
+                <View style={styles.resendContainer}>
+                  <Text style={styles.linkText}>{i18n.t("auth.didntReceiveCode")}</Text>
+                  <TouchableOpacity style={styles.link} onPress={handleResendCode}>
+                    <Text style={styles.linkTextBold}>{i18n.t("auth.resendCode")}</Text>
+                  </TouchableOpacity>
+                </View>
               </>
             )}
           </>
@@ -361,6 +413,13 @@ export default function SignUpScreen() {
           {isEmailMode ? i18n.t("auth.signUpWithMobile") : i18n.t("auth.signUpWithEmail")}
         </Button>
       </View>
+
+      {/* Error Display */}
+      {hasError && (
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>{error?.message}</Text>
+        </View>
+      )}
 
       {/* Sign In Section */}
       <View style={styles.signInContainer}>
@@ -410,10 +469,16 @@ const styles = StyleSheet.create({
   button: {
     marginTop: 10,
   },
+  errorContainer: {
+    backgroundColor: "#FEE2E2",
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 20,
+  },
   errorText: {
-    color: "#E53E3E",
-    marginBottom: 15,
+    color: "#DC2626",
     textAlign: "center",
+    fontSize: 14,
   },
   alternativeContainer: {
     marginBottom: 30,
@@ -439,5 +504,36 @@ const styles = StyleSheet.create({
   },
   supportButton: {
     borderWidth: 0,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: "bold",
+    textAlign: "center",
+    marginBottom: 8,
+    color: COLORS.light.tint,
+  },
+  subtitle: {
+    fontSize: 16,
+    textAlign: "center",
+    marginBottom: 20,
+    color: "#5A7086",
+  },
+  resendContainer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 20,
+  },
+  linkText: {
+    color: "#718096",
+    fontSize: 14,
+  },
+  link: {
+    marginLeft: 4,
+  },
+  linkTextBold: {
+    color: COLORS.light.tint,
+    fontSize: 14,
+    fontWeight: "bold",
   },
 });

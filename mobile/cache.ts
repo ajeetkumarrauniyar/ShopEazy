@@ -1,6 +1,6 @@
+import { TokenCache } from "@clerk/clerk-expo";
 import * as SecureStore from "expo-secure-store";
 import { Platform } from "react-native";
-import { TokenCache } from "@clerk/clerk-expo";
 
 const createTokenCache = (): TokenCache => {
   return {
@@ -15,13 +15,19 @@ const createTokenCache = (): TokenCache => {
         return item ?? "";
       } catch (error) {
         console.error(`🚨 Error retrieving token for key "${key}":`, error);
+        // Return empty string on error to prevent app crashes
         return "";
       }
     },
 
-    saveToken: (key: string, token: string) => {
-      console.log(`💾 Info: Saving token under key "${key}"...`);
-      return SecureStore.setItemAsync(key, token);
+    saveToken: async (key: string, token: string) => {
+      try {
+        console.log(`💾 Info: Saving token under key "${key}"...`);
+        await SecureStore.setItemAsync(key, token);
+        console.log(`✅ Success: Token saved for key "${key}"`);
+      } catch (error) {
+        console.error(`🚨 Error saving token for key "${key}":`, error);
+      }
     },
   };
 };
