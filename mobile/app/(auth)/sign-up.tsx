@@ -89,7 +89,7 @@ export default function SignUpScreen() {
       if (completeSignUp?.status === "complete") {
         await setActive?.({ session: completeSignUp?.createdSessionId });
         console.log("✅ Phone signup complete, redirecting");
-        router.replace("/(protected)");
+        router.replace("/(protected)/(tabs)");
       } else if (
         completeSignUp?.status === "missing_requirements" &&
         completeSignUp?.missingFields?.includes("password")
@@ -108,7 +108,7 @@ export default function SignUpScreen() {
           if (updatedSignUp?.status === "complete") {
             await setActive?.({ session: updatedSignUp?.createdSessionId });
             console.log("✅ Phone signup complete after password update");
-            router.replace("/(protected)");
+            router.replace("/(protected)/(tabs)");
           } else {
             console.log("⚠️ Phone signup still incomplete:", updatedSignUp?.status);
             setCustomError("Registration incomplete. Please try again.");
@@ -183,7 +183,7 @@ export default function SignUpScreen() {
       if (completeSignUp?.status === "complete") {
         await setActive?.({ session: completeSignUp?.createdSessionId });
         console.log("✅ Email signup complete, redirecting");
-        router.replace("/(protected)");
+        router.replace("/(protected)/(tabs)");
       } else {
         console.log("⚠️ Email signup incomplete, status:", completeSignUp?.status);
         setCustomError("Registration incomplete. Please try again.");

@@ -18,21 +18,16 @@ export default function ProtectedLayout() {
   return (
     <Stack
       screenOptions={{
-        ...(process.env.EXPO_OS !== "ios"
-          ? {
-              headerLargeTitle: true,
-              headerTransparent: true,
-              headerBlurEffect: "systemChromeMaterial",
-              headerLargeTitleShadowVisible: false,
-              headerShadowVisible: true,
-              headerLargeStyle: {
-                backgroundColor: "transparent",
-              },
-            }
-          : {}),
+        headerShown: false, // Disable headers completely for tab navigation
       }}
     >
-      <Stack.Screen name="index" />
+      <Stack.Screen 
+        name="(tabs)" 
+        options={{ 
+          headerShown: false,
+          title: "" // Remove any title that might show
+        }} 
+      />
     </Stack>
   );
 }
