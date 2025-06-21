@@ -1,11 +1,32 @@
-import { StyleSheet, Text, type TextProps } from 'react-native';
-
+import { useTheme } from '@/hooks/useTheme';
 import { useThemeColor } from '@/hooks/useThemeColor';
+import { StyleSheet, Text, type TextProps } from 'react-native';
 
 export type ThemedTextProps = TextProps & {
   lightColor?: string;
   darkColor?: string;
-  type?: 'default' | 'title' | 'defaultSemiBold' | 'subtitle' | 'link';
+  type?: 
+    | 'default' 
+    | 'title' 
+    | 'defaultSemiBold' 
+    | 'subtitle' 
+    | 'link'
+    | 'headline1'
+    | 'headline2'
+    | 'headline3'
+    | 'headline4'
+    | 'headline5'
+    | 'headline6'
+    | 'subtitle1'
+    | 'subtitle2'
+    | 'body1'
+    | 'body2'
+    | 'button'
+    | 'caption'
+    | 'overline'
+    | 'price'
+    | 'currency'
+    | 'invoiceNumber';
 };
 
 export function ThemedText({
@@ -15,17 +36,55 @@ export function ThemedText({
   type = 'default',
   ...rest
 }: ThemedTextProps) {
-  const color = useThemeColor({ light: lightColor, dark: darkColor }, 'text');
+  const theme = useTheme();
+  const color = useThemeColor({ light: lightColor, dark: darkColor }, 'text.primary');
+
+  // Get typography styles from theme
+  const getTypeStyle = () => {
+    switch (type) {
+      case 'headline1':
+      case 'headline2':
+      case 'headline3':
+      case 'headline4':
+      case 'headline5':
+      case 'headline6':
+      case 'subtitle1':
+      case 'subtitle2':
+      case 'body1':
+      case 'body2':
+      case 'button':
+      case 'caption':
+      case 'overline':
+      case 'price':
+      case 'currency':
+      case 'invoiceNumber':
+        return theme.typography.textStyles[type];
+      case 'title':
+        return theme.typography.textStyles.headline4;
+      case 'subtitle':
+        return theme.typography.textStyles.subtitle1;
+      case 'defaultSemiBold':
+        return {
+          ...theme.typography.textStyles.body1,
+          fontFamily: theme.typography.fonts.medium,
+        };
+      case 'link':
+        return {
+          ...theme.typography.textStyles.body1,
+          color: theme.colors.primary,
+        };
+      default:
+        return theme.typography.textStyles.body1;
+    }
+  };
+
+  const typeStyle = getTypeStyle();
 
   return (
     <Text
       style={[
         { color },
-        type === 'default' ? styles.default : undefined,
-        type === 'title' ? styles.title : undefined,
-        type === 'defaultSemiBold' ? styles.defaultSemiBold : undefined,
-        type === 'subtitle' ? styles.subtitle : undefined,
-        type === 'link' ? styles.link : undefined,
+        typeStyle,
         style,
       ]}
       {...rest}

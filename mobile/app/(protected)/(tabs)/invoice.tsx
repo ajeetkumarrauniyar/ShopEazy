@@ -285,13 +285,11 @@ export default function OptimizedInvoice() {
                 })}
               </ThemedText>
             </TouchableOpacity>
+            
             <View style={styles.invoiceNumberBadge}>
               <ThemedText style={styles.invoiceNumberText}>
                 {invoiceNumber}
               </ThemedText>
-              <TouchableOpacity onPress={generateInvoiceNumber}>
-                <Ionicons name="refresh" size={16} color="#007AFF" />
-              </TouchableOpacity>
             </View>
           </View>
 

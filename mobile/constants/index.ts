@@ -1,3 +1,3 @@
-export * from './Colors';
 export * from './ErrorMessages';
+export * from './theme';
 

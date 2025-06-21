@@ -4,7 +4,6 @@ import {
   DefaultTheme,
   ThemeProvider,
 } from "@react-navigation/native";
-import { useFonts } from "expo-font";
 import { Slot, useRouter, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
@@ -15,6 +14,7 @@ import "react-native-reanimated";
 import { tokenCache } from "@/cache";
 import { loadSavedLanguage } from "@/config/i18n";
 import { useColorScheme } from "@/hooks/useColorScheme";
+import { useFonts } from "@/hooks/useFonts";
 import { checkOnboardingStatus } from "@/utils/onboarding";
 import ResetButtonDevOnly from "@/components/ResetButtonDevOnly";
 
@@ -38,9 +38,8 @@ export default function RootLayout() {
   const [isOnboardingCompleted, setIsOnboardingCompleted] = useState<boolean | null>(null);
   const [appIsReady, setAppIsReady] = useState(false);
   
-  const [loaded] = useFonts({
-    SpaceMono: require("../assets/fonts/SpaceMono-Regular.ttf"),
-  });
+  // Use the new font loading system
+  const fontsLoaded = useFonts();
 
   // Check onboarding status when app loads
   useEffect(() => {
@@ -56,10 +55,10 @@ export default function RootLayout() {
       }
     };
 
-    if (loaded) {
+    if (fontsLoaded) {
       initializeApp();
     }
-  }, [loaded]);
+  }, [fontsLoaded]);
 
   // Re-check onboarding status when segments change
   useEffect(() => {
@@ -91,15 +90,15 @@ export default function RootLayout() {
   // Hide splash screen when app is ready
   useEffect(() => {
     const hideSplashScreen = async () => {
-      if (appIsReady && loaded && isOnboardingCompleted !== null) {
+      if (appIsReady && fontsLoaded && isOnboardingCompleted !== null) {
         await SplashScreen.hideAsync();
       }
     };
 
     hideSplashScreen();
-  }, [appIsReady, loaded, isOnboardingCompleted]);
+  }, [appIsReady, fontsLoaded, isOnboardingCompleted]);
 
-  if (!appIsReady || !loaded || isOnboardingCompleted === null) {
+  if (!appIsReady || !fontsLoaded || isOnboardingCompleted === null) {
     // Keep splash screen visible while loading
     return null;
   }
@@ -123,7 +122,6 @@ export default function RootLayout() {
           <StatusBar style="auto" />
         </ThemeProvider>
       </ClerkLoaded>
-      <ResetButtonDevOnly />
     </ClerkProvider>
   );
 }

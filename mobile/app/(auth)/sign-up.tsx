@@ -3,7 +3,7 @@ import { BodyScrollView } from "@/components/ui/BodyScrollView";
 import { Button } from "@/components/ui/Button";
 import { TextInput } from "@/components/ui/TextInput";
 import i18n from "@/config/i18n";
-import { COLORS } from "@/constants/index";
+import { lightColors } from "@/constants/index";
 import { useAuthError } from "@/utils/errorHandler";
 import { useSignUp } from "@clerk/clerk-expo";
 import { Link, useRouter } from "expo-router";
@@ -389,9 +389,16 @@ export default function SignUpScreen() {
                 </Button>
 
                 <View style={styles.resendContainer}>
-                  <Text style={styles.linkText}>{i18n.t("auth.didntReceiveCode")}</Text>
-                  <TouchableOpacity style={styles.link} onPress={handleResendCode}>
-                    <Text style={styles.linkTextBold}>{i18n.t("auth.resendCode")}</Text>
+                  <Text style={styles.linkText}>
+                    {i18n.t("auth.didntReceiveCode")}
+                  </Text>
+                  <TouchableOpacity
+                    style={styles.link}
+                    onPress={handleResendCode}
+                  >
+                    <Text style={styles.linkTextBold}>
+                      {i18n.t("auth.resendCode")}
+                    </Text>
                   </TouchableOpacity>
                 </View>
               </>
@@ -410,7 +417,9 @@ export default function SignUpScreen() {
           onPress={switchMode}
           style={styles.button}
         >
-          {isEmailMode ? i18n.t("auth.signUpWithMobile") : i18n.t("auth.signUpWithEmail")}
+          {isEmailMode
+            ? i18n.t("auth.signUpWithMobile")
+            : i18n.t("auth.signUpWithEmail")}
         </Button>
       </View>
 
@@ -425,7 +434,9 @@ export default function SignUpScreen() {
       <View style={styles.signInContainer}>
         <ThemedText>{i18n.t("auth.alreadyHaveAccount")}</ThemedText>
         <Link href="/">
-          <ThemedText style={styles.signInText}>{i18n.t("auth.signIn")}</ThemedText>
+          <ThemedText style={styles.signInText}>
+            {i18n.t("auth.signIn")}
+          </ThemedText>
         </Link>
       </View>
 
@@ -451,7 +462,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontSize: 32,
     fontWeight: "bold",
-    color: COLORS.light.tint,
+    color: lightColors.primary,
     marginBottom: 8,
   },
   tagline: {
@@ -494,7 +505,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   signInText: {
-    color: COLORS.light.tint,
+    color: lightColors.primary,
     fontWeight: "bold",
   },
   supportContainer: {
@@ -510,7 +521,7 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     textAlign: "center",
     marginBottom: 8,
-    color: COLORS.light.tint,
+    color: lightColors.primary,
   },
   subtitle: {
     fontSize: 16,
@@ -532,7 +543,7 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
   linkTextBold: {
-    color: COLORS.light.tint,
+    color: lightColors.primary,
     fontSize: 14,
     fontWeight: "bold",
   },

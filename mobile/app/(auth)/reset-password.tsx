@@ -3,30 +3,40 @@ import { BodyScrollView } from "@/components/ui/BodyScrollView";
 import { Button } from "@/components/ui/Button";
 import { TextInput } from "@/components/ui/TextInput";
 import i18n from "@/config/i18n";
-import { COLORS } from "@/constants/index";
 import { useAuthError } from "@/utils/errorHandler";
 import { useSignIn, useSignUp } from "@clerk/clerk-expo";
 import { Link, useRouter } from "expo-router";
 import React, { useState } from "react";
-import { StatusBar, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { useTheme } from "@/hooks/useTheme";
+import { Theme } from "@/constants/theme";
 
-type ResetStep = 'contact' | 'verification' | 'newPassword';
-type ResetMode = 'email' | 'phone';
+type ResetStep = "contact" | "verification" | "newPassword";
+type ResetMode = "email" | "phone";
 
 export default function ResetPasswordScreen() {
   const { signIn, setActive } = useSignIn();
   const { signUp } = useSignUp();
   const router = useRouter();
-  const { error, setCustomError, setClerkError, clearError, hasError } = useAuthError();
+  const { error, setCustomError, setClerkError, clearError, hasError } =
+    useAuthError();
+  const theme = useTheme();
+  const styles = createStyles(theme);
 
   const [email, setEmail] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
-  const [resetMode, setResetMode] = useState<ResetMode>('email');
+  const [resetMode, setResetMode] = useState<ResetMode>("email");
   
   const [code, setCode] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [currentStep, setCurrentStep] = useState<ResetStep>('contact');
+  const [currentStep, setCurrentStep] = useState<ResetStep>("contact");
   const [isLoading, setIsLoading] = useState(false);
 
   // Handle phone number formatting (from signup)
@@ -48,12 +58,12 @@ export default function ResetPasswordScreen() {
 
   // Switch between email and phone modes
   const switchResetMode = () => {
-    setResetMode(resetMode === 'email' ? 'phone' : 'email');
+    setResetMode(resetMode === "email" ? "phone" : "email");
     setEmail("");
     setPhoneNumber("");
     setCode("");
     clearError();
-    console.log("🔄 Switched to", resetMode === 'email' ? "PHONE" : "EMAIL", "reset mode");
+    console.log("🔄 Switched to", resetMode === "email" ? "PHONE" : "EMAIL", "reset mode");
   };
 
   // Step 1: Send reset code (Email)
@@ -73,7 +83,7 @@ export default function ResetPasswordScreen() {
       });
       
       console.log("✅ Email reset code sent to:", email);
-      setCurrentStep('verification');
+      setCurrentStep("verification");
     } catch (err) {
       console.error("❌ Failed to send email reset code:", err);
       setClerkError(err);
@@ -104,7 +114,7 @@ export default function ResetPasswordScreen() {
       });
       console.log("✅ Phone reset: Verification prepared, OTP sent to:", phoneNumber);
       
-      setCurrentStep('verification');
+      setCurrentStep("verification");
     } catch (err) {
       console.error("❌ Failed to send phone reset code:", err);
       setClerkError(err);
@@ -133,7 +143,7 @@ export default function ResetPasswordScreen() {
       
       if (result?.status === "needs_new_password") {
         console.log("✅ Email code verified, proceed to new password");
-        setCurrentStep('newPassword');
+        setCurrentStep("newPassword");
       } else {
         console.log("⚠️ Unexpected email verification status:", result?.status);
         setCustomError("Verification incomplete. Please try again.");
@@ -165,7 +175,7 @@ export default function ResetPasswordScreen() {
       
       if (result?.status === "complete" || result?.status === "missing_requirements") {
         console.log("✅ Phone code verified, proceed to new password");
-        setCurrentStep('newPassword');
+        setCurrentStep("newPassword");
       } else {
         console.log("⚠️ Unexpected phone verification status:", result?.status);
         setCustomError("Verification incomplete. Please try again.");
@@ -199,7 +209,7 @@ export default function ResetPasswordScreen() {
     setIsLoading(true);
 
     try {
-      if (resetMode === 'email') {
+      if (resetMode === "email") {
         // Email reset using signIn
         const result = await signIn?.resetPassword({
           password: newPassword,
@@ -246,7 +256,7 @@ export default function ResetPasswordScreen() {
     setIsLoading(true);
 
     try {
-      if (resetMode === 'email') {
+      if (resetMode === "email") {
         await signIn?.create({
           strategy: "reset_password_email_code",
           identifier: email.trim(),
@@ -268,7 +278,7 @@ export default function ResetPasswordScreen() {
 
   // Reset to contact step
   const handleBackToContact = () => {
-    setCurrentStep('contact');
+    setCurrentStep("contact");
     setCode("");
     clearError();
   };
@@ -279,13 +289,13 @@ export default function ResetPasswordScreen() {
         Reset Password
       </ThemedText>
       <ThemedText style={styles.subtitle}>
-        {resetMode === 'email' 
+        {resetMode === "email" 
           ? "Enter your email address and we'll send you a verification code to reset your password."
           : "Enter your phone number and we'll send you a verification code to reset your password."
         }
       </ThemedText>
 
-      {resetMode === 'email' ? (
+      {resetMode === "email" ? (
         <TextInput
           variant="filled"
           size="lg"
@@ -313,10 +323,10 @@ export default function ResetPasswordScreen() {
 
       <Button
         size="lg"
-        onPress={resetMode === 'email' ? handleSendEmailResetCode : handleSendPhoneResetCode}
+        onPress={resetMode === "email" ? handleSendEmailResetCode : handleSendPhoneResetCode}
         loading={isLoading}
         style={styles.button}
-        disabled={(resetMode === 'email' ? !email.trim() : !phoneNumber.trim()) || isLoading}
+        disabled={(resetMode === "email" ? !email.trim() : !phoneNumber.trim()) || isLoading}
       >
         Send Reset Code
       </Button>
@@ -330,7 +340,7 @@ export default function ResetPasswordScreen() {
           onPress={switchResetMode}
           style={styles.button}
         >
-          {resetMode === 'email' ? "Reset with Phone Number" : "Reset with Email"}
+          {resetMode === "email" ? "Reset with Phone Number" : "Reset with Email"}
         </Button>
       </View>
     </>
@@ -342,7 +352,7 @@ export default function ResetPasswordScreen() {
         Enter Verification Code
       </ThemedText>
       <ThemedText style={styles.subtitle}>
-        We&apos;ve sent a verification code to {resetMode === 'email' ? email : phoneNumber}
+        We&apos;ve sent a verification code to {resetMode === "email" ? email : phoneNumber}
       </ThemedText>
 
       <TextInput
@@ -359,7 +369,7 @@ export default function ResetPasswordScreen() {
 
       <Button
         size="lg"
-        onPress={resetMode === 'email' ? handleVerifyEmailCode : handleVerifyPhoneCode}
+        onPress={resetMode === "email" ? handleVerifyEmailCode : handleVerifyPhoneCode}
         loading={isLoading}
         style={styles.button}
         disabled={!code.trim() || isLoading}
@@ -375,7 +385,7 @@ export default function ResetPasswordScreen() {
       </View>
 
       <TouchableOpacity style={styles.backButton} onPress={handleBackToContact}>
-        <Text style={styles.backButtonText}>← Back to {resetMode === 'email' ? 'Email' : 'Phone'}</Text>
+        <Text style={styles.backButtonText}>← Back to {resetMode === "email" ? "Email" : "Phone"}</Text>
       </TouchableOpacity>
     </>
   );
@@ -425,7 +435,10 @@ export default function ResetPasswordScreen() {
 
   return (
     <BodyScrollView contentContainerStyle={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
+      <StatusBar
+        barStyle={theme.isDark ? "light-content" : "dark-content"}
+        backgroundColor={theme.colors.background}
+      />
       
       {/* App Logo */}
       <ThemedText type="title" style={styles.logo}>
@@ -433,9 +446,9 @@ export default function ResetPasswordScreen() {
       </ThemedText>
 
       <View style={styles.formContainer}>
-        {currentStep === 'contact' && renderContactStep()}
-        {currentStep === 'verification' && renderVerificationStep()}
-        {currentStep === 'newPassword' && renderNewPasswordStep()}
+        {currentStep === "contact" && renderContactStep()}
+        {currentStep === "verification" && renderVerificationStep()}
+        {currentStep === "newPassword" && renderNewPasswordStep()}
       </View>
 
       {/* Error Display */}
@@ -463,105 +476,106 @@ export default function ResetPasswordScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flexGrow: 1,
-    paddingHorizontal: 20,
-    paddingTop: 40,
-    paddingBottom: 20,
-    backgroundColor: "#F5F7FA",
-  },
-  logo: {
-    textAlign: "center",
-    fontSize: 32,
-    fontWeight: "bold",
-    color: COLORS.light.tint,
-    marginBottom: 40,
-  },
-  title: {
-    textAlign: "center",
-    fontSize: 28,
-    fontWeight: "bold",
-    color: COLORS.light.tint,
-    marginBottom: 8,
-  },
-  subtitle: {
-    textAlign: "center",
-    fontSize: 16,
-    marginBottom: 40,
-    color: "#5A7086",
-    lineHeight: 22,
-  },
-  formContainer: {
-    marginBottom: 30,
-  },
-  input: {
-    marginBottom: 20,
-  },
-  button: {
-    marginTop: 10,
-  },
-  errorContainer: {
-    backgroundColor: "#FEE2E2",
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 20,
-  },
-  errorText: {
-    color: "#DC2626",
-    textAlign: "center",
-    fontSize: 14,
-  },
-  alternativeContainer: {
-    marginBottom: 30,
-  },
-  orText: {
-    textAlign: "center",
-    marginVertical: 15,
-    color: "#718096",
-  },
-  resendContainer: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    marginTop: 20,
-  },
-  linkText: {
-    color: "#718096",
-    fontSize: 14,
-  },
-  link: {
-    marginLeft: 4,
-  },
-  linkTextBold: {
-    color: COLORS.light.tint,
-    fontSize: 14,
-    fontWeight: "bold",
-  },
-  backButton: {
-    marginTop: 20,
-    alignSelf: "center",
-  },
-  backButtonText: {
-    color: COLORS.light.tint,
-    fontSize: 16,
-    fontWeight: "500",
-  },
-  signInContainer: {
-    flexDirection: "row",
-    justifyContent: "center",
-    marginBottom: 20,
-  },
-  signInText: {
-    color: COLORS.light.tint,
-    fontWeight: "bold",
-  },
-  supportContainer: {
-    marginTop: "auto",
-    paddingTop: 20,
-    marginBottom: 20,
-  },
-  supportButton: {
-    borderWidth: 0,
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    container: {
+      flexGrow: 1,
+      paddingHorizontal: 20,
+      paddingTop: 40,
+      paddingBottom: 20,
+      backgroundColor: theme.colors.background,
+    },
+    logo: {
+      textAlign: "center",
+      fontSize: 32,
+      fontWeight: "bold",
+      color: theme.colors.primary,
+      marginBottom: 40,
+    },
+    title: {
+      textAlign: "center",
+      fontSize: 28,
+      fontWeight: "bold",
+      color: theme.colors.primary,
+      marginBottom: 8,
+    },
+    subtitle: {
+      textAlign: "center",
+      fontSize: 16,
+      marginBottom: 40,
+      color: theme.colors.text.secondary,
+      lineHeight: 22,
+    },
+    formContainer: {
+      marginBottom: 30,
+    },
+    input: {
+      marginBottom: 20,
+    },
+    button: {
+      marginTop: 10,
+    },
+    errorContainer: {
+      backgroundColor: `${theme.colors.error}20`,
+      padding: 12,
+      borderRadius: 8,
+      marginBottom: 20,
+    },
+    errorText: {
+      color: theme.colors.error,
+      textAlign: "center",
+      fontSize: 14,
+    },
+    alternativeContainer: {
+      marginBottom: 30,
+    },
+    orText: {
+      textAlign: "center",
+      marginVertical: 15,
+      color: theme.colors.text.secondary,
+    },
+    resendContainer: {
+      flexDirection: "row",
+      justifyContent: "center",
+      alignItems: "center",
+      marginTop: 20,
+    },
+    linkText: {
+      color: theme.colors.text.secondary,
+      fontSize: 14,
+    },
+    link: {
+      marginLeft: 4,
+    },
+    linkTextBold: {
+      color: theme.colors.primary,
+      fontSize: 14,
+      fontWeight: "bold",
+    },
+    backButton: {
+      marginTop: 20,
+      alignSelf: "center",
+    },
+    backButtonText: {
+      color: theme.colors.primary,
+      fontSize: 16,
+      fontWeight: "500",
+    },
+    signInContainer: {
+      flexDirection: "row",
+      justifyContent: "center",
+      marginBottom: 20,
+    },
+    signInText: {
+      color: theme.colors.primary,
+      fontWeight: "bold",
+    },
+    supportContainer: {
+      marginTop: "auto",
+      paddingTop: 20,
+      marginBottom: 20,
+    },
+    supportButton: {
+      borderWidth: 0,
+    },
+  });

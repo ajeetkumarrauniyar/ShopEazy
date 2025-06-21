@@ -10,7 +10,7 @@ export default function AuthLayout() {
 
   if (isSignedIn) {
     console.log("✅ User is signed in. Redirecting to protected route...");
-    return <Redirect href={"/(protected)"} />;
+    return <Redirect href={"/(protected)/(tabs)"} />;
   }
   
   return (

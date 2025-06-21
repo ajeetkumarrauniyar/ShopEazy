@@ -1,9 +1,10 @@
+import ResetButtonDevOnly from "@/components/ResetButtonDevOnly";
 import { ThemedText } from "@/components/ThemedText";
 import { BodyScrollView } from "@/components/ui/BodyScrollView";
 import { Button } from "@/components/ui/Button";
 import { TextInput } from "@/components/ui/TextInput";
 import i18n from "@/config/i18n";
-import { COLORS } from "@/constants/index";
+import { lightColors } from "@/constants/index";
 import { useAuthError } from "@/utils/errorHandler";
 import { useSignIn } from "@clerk/clerk-expo";
 import { Link } from "expo-router";
@@ -12,7 +13,8 @@ import { StatusBar, StyleSheet, TouchableOpacity, View } from "react-native";
 
 export default function SignInScreen() {
   const { signIn, setActive } = useSignIn();
-  const { error, setCustomError, setClerkError, clearError, hasError } = useAuthError();
+  const { error, setCustomError, setClerkError, clearError, hasError } =
+    useAuthError();
 
   const [phoneNumber, setPhoneNumber] = useState("");
   const [email, setEmail] = useState("");
@@ -43,10 +45,10 @@ export default function SignInScreen() {
       setCustomError("Please enter your phone number");
       return;
     }
-    
+
     clearError();
     setIsAuthenticating(true);
-    
+
     try {
       await signIn?.create({
         strategy: "phone_code",
@@ -67,22 +69,25 @@ export default function SignInScreen() {
       setCustomError("Please enter the OTP code");
       return;
     }
-    
+
     clearError();
     setIsAuthenticating(true);
-    
+
     try {
       const completeSignIn = await signIn?.attemptFirstFactor({
         strategy: "phone_code",
         code: otp,
       });
       console.log("📋 Phone Verification - Status:", completeSignIn?.status);
-      
+
       if (completeSignIn?.status === "complete") {
         await setActive?.({ session: completeSignIn.createdSessionId });
         console.log("✅ Phone signin complete, redirecting");
       } else {
-        console.log("⚠️ Phone signin incomplete, status:", completeSignIn?.status);
+        console.log(
+          "⚠️ Phone signin incomplete, status:",
+          completeSignIn?.status
+        );
         setCustomError("Sign in incomplete. Please try again.");
       }
     } catch (err) {
@@ -107,14 +112,14 @@ export default function SignInScreen() {
     console.log("🔄 Email signin: Attempting with email:", email);
     clearError();
     setIsAuthenticating(true);
-    
+
     try {
       const result = await signIn?.create({
         identifier: email,
         password: userPassword,
       });
       console.log("📋 Email signin - Status:", result?.status);
-      
+
       if (result?.status === "complete") {
         await setActive?.({ session: result.createdSessionId });
         console.log("✅ Email signin complete, redirecting");
@@ -201,9 +206,9 @@ export default function SignInScreen() {
             <TextInput
               variant="filled"
               size="lg"
-              label="ईमेल"
+              label={i18n.t("auth.email")}
               value={email}
-              placeholder="अपना ईमेल डालें"
+              placeholder={i18n.t("auth.emailPlaceholder")}
               autoCapitalize="none"
               autoComplete="email"
               keyboardType="email-address"
@@ -214,9 +219,9 @@ export default function SignInScreen() {
             <TextInput
               variant="filled"
               size="lg"
-              label="पासवर्ड"
+              label={i18n.t("auth.password")}
               value={userPassword}
-              placeholder="अपना पासवर्ड डालें"
+              placeholder={i18n.t("auth.passwordPlaceholder")}
               onChangeText={setUserPassword}
               secureTextEntry
               containerStyle={styles.input}
@@ -285,6 +290,8 @@ export default function SignInScreen() {
           {i18n.t("auth.needHelp")}
         </Button>
       </View>
+
+      <ResetButtonDevOnly />
     </BodyScrollView>
   );
 }
@@ -301,7 +308,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontSize: 32,
     fontWeight: "bold",
-    color: COLORS.light.tint,
+    color: lightColors.primary,
     marginBottom: 8,
   },
   tagline: {
@@ -336,7 +343,7 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   linkText: {
-    color: COLORS.light.tint,
+    color: lightColors.primary,
     fontWeight: "500",
   },
   alternativeContainer: {
@@ -353,7 +360,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   signUpText: {
-    color: COLORS.light.tint,
+    color: lightColors.primary,
     fontWeight: "bold",
   },
   supportContainer: {
