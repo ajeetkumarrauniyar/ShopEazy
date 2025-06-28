@@ -2,18 +2,30 @@ import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { Button } from "@/components/ui/Button";
 import { TextInput } from "@/components/ui/TextInput";
+import type { InvoiceWithItems } from "@/db/db";
+import { ensureDatabaseInitialized } from "@/db/migrate";
+import {
+  getAllInvoicesWithItems,
+  getNextInvoiceNumber,
+  saveInvoice,
+} from "@/services/invoiceService";
+import {
+  getStateFromGSTIN,
+  validateCustomerName,
+  validateGSTIN,
+} from "@/utils/validation";
 import { Ionicons } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useEffect, useRef, useState } from "react";
 import {
-    Alert,
-    FlatList,
-    Modal,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    TouchableOpacity,
-    View,
+  Alert,
+  FlatList,
+  Modal,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 interface LineItem {
@@ -43,12 +55,20 @@ const mockProducts: Product[] = [
 ];
 
 export default function OptimizedInvoice() {
+  // Database state
+  const [data, setData] = useState<InvoiceWithItems[]>([]);
+
   // Sale Type (B2C/B2B)
   const [saleType, setSaleType] = useState<"B2C" | "B2B">("B2C");
 
   // Customer Information
   const [partyName, setPartyName] = useState("CASH");
   const [partyGstin, setPartyGstin] = useState("");
+
+  // Validation states
+  const [partyNameError, setPartyNameError] = useState("");
+  const [partyGstinError, setPartyGstinError] = useState("");
+  const [gstinState, setGstinState] = useState("");
 
   // Invoice Details
   const [invoiceNumber, setInvoiceNumber] = useState("");
@@ -71,16 +91,42 @@ export default function OptimizedInvoice() {
   // Add ref for the ScrollView
   const lineItemsScrollRef = useRef<ScrollView>(null);
 
-  // Auto-generate invoice number on component mount
+  // Load data from database on component mount
   useEffect(() => {
-    generateInvoiceNumber();
+    const initializeAndLoadData = async () => {
+      try {
+        await ensureDatabaseInitialized();
+        await loadInvoicesFromDatabase();
+        await generateInvoiceNumber();
+      } catch (error) {
+        console.error("Error initializing app:", error);
+      }
+    };
+
+    initializeAndLoadData();
   }, []);
 
-  //TODO: Get the last invoice number saved in the database and increment it
-  const generateInvoiceNumber = () => {
-    const year = new Date().getFullYear();
-    const randomNum = Math.floor(Math.random() * 9999) + 1;
-    setInvoiceNumber(`INV-${year}-${randomNum.toString().padStart(4, "0")}`);
+  const loadInvoicesFromDatabase = async () => {
+    try {
+      const invoices = await getAllInvoicesWithItems();
+      setData(invoices);
+    } catch (error) {
+      console.error("Error loading invoices:", error);
+    }
+  };
+
+  // Generate invoice number using database service
+  const generateInvoiceNumber = async () => {
+    try {
+      const nextNumber = await getNextInvoiceNumber();
+      setInvoiceNumber(nextNumber);
+    } catch (error) {
+      console.error("Error generating invoice number:", error);
+      // Fallback to old method
+      const year = new Date().getFullYear();
+      const randomNum = Math.floor(Math.random() * 9999) + 1;
+      setInvoiceNumber(`INV-${year}-${randomNum.toString().padStart(4, "0")}`);
+    }
   };
 
   const handleSaleTypeToggle = (type: "B2C" | "B2B") => {
@@ -88,9 +134,12 @@ export default function OptimizedInvoice() {
     if (type === "B2C") {
       setPartyName("CASH");
       setPartyGstin("");
+      setPartyGstinError("");
+      setGstinState("");
     } else {
       setPartyName("");
     }
+    setPartyNameError("");
   };
 
   const handleDateChange = (event: any, selectedDate?: Date) => {
@@ -109,7 +158,7 @@ export default function OptimizedInvoice() {
       amount: 0,
     };
     setLineItems([...lineItems, newItem]);
-    
+
     // Auto scroll to bottom after adding new item
     setTimeout(() => {
       lineItemsScrollRef.current?.scrollToEnd({ animated: true });
@@ -189,17 +238,30 @@ export default function OptimizedInvoice() {
   const total = subtotal + taxAmount;
 
   const handleSaveInvoice = async () => {
-    // Basic validation
-    if (!partyName) {
-      Alert.alert("Error", "Please enter party name");
-      return;
+    let hasValidationErrors = false;
+
+    // Validate customer name
+    const nameValidation = validateCustomerName(partyName);
+    if (!nameValidation.isValid) {
+      setPartyNameError(nameValidation.error || "Invalid customer name");
+      hasValidationErrors = true;
     }
 
-    if (saleType === "B2B" && !partyGstin) {
-      Alert.alert("Error", "GSTIN is required for B2B sales");
-      return;
+    // Validate GSTIN for B2B sales
+    if (saleType === "B2B") {
+      if (!partyGstin.trim()) {
+        setPartyGstinError("GSTIN is required for B2B sales");
+        hasValidationErrors = true;
+      } else {
+        const gstinValidation = validateGSTIN(partyGstin);
+        if (!gstinValidation.isValid) {
+          setPartyGstinError(gstinValidation.error || "Invalid GSTIN format");
+          hasValidationErrors = true;
+        }
+      }
     }
 
+    // Check line items
     if (
       !lineItems.some((item) => item.productName && item.quantity && item.rate)
     ) {
@@ -210,9 +272,19 @@ export default function OptimizedInvoice() {
       return;
     }
 
+    // Stop if there are validation errors
+    if (hasValidationErrors) {
+      Alert.alert(
+        "Validation Error",
+        "Please fix the errors above before saving the invoice"
+      );
+      return;
+    }
+
     setLoading(true);
 
     try {
+      const now = new Date().toISOString();
       const preparedItems = lineItems
         .filter((item) => item.productName && item.quantity && item.rate)
         .map((item) => ({
@@ -220,24 +292,32 @@ export default function OptimizedInvoice() {
           quantity: parseFloat(item.quantity) || 0,
           rate: parseFloat(item.rate) || 0,
           amount: item.amount,
+          createdAt: now,
+          updatedAt: now,
         }));
 
-      const payload = {
-        saleType,
-        partyName: partyName.trim(),
-        partyGstin: partyGstin.trim(),
+      const invoiceData = {
         invoiceNumber,
         invoiceDate: invoiceDate.toISOString(),
-        lineItems: preparedItems,
+        saleType,
+        customerName: partyName.trim(),
+        customerGstin: partyGstin.trim() || undefined,
         subtotal,
         taxAmount,
-        total,
+        taxRate,
+        totalAmount: total,
+        lineItems: preparedItems,
+        createdAt: now,
+        updatedAt: now,
       };
 
-      console.log("Saving invoice with data:", payload);
+      // Save to local database
+      const invoiceId = await saveInvoice(invoiceData);
 
-      // TODO: Replace with actual API call
-      // const response = await api.post("/api/invoice", payload);
+      console.log("Invoice saved successfully with ID:", invoiceId);
+
+      // Refresh the data from database
+      await loadInvoicesFromDatabase();
 
       // Reset form
       setLineItems([
@@ -246,8 +326,11 @@ export default function OptimizedInvoice() {
       setSaleType("B2C");
       setPartyName("CASH");
       setPartyGstin("");
+      setPartyNameError("");
+      setPartyGstinError("");
+      setGstinState("");
       setInvoiceDate(new Date());
-      generateInvoiceNumber();
+      await generateInvoiceNumber();
 
       Alert.alert("Success", "Invoice saved successfully!");
     } catch (error: any) {
@@ -260,6 +343,43 @@ export default function OptimizedInvoice() {
 
   const handleExportInvoice = () => {
     Alert.alert("Export", "Invoice export feature coming soon!");
+  };
+
+  // Validation functions
+  const handlePartyNameChange = (name: string) => {
+    setPartyName(name);
+
+    // Skip validation for B2C CASH customers
+    if (saleType === "B2C" && name === "CASH") {
+      setPartyNameError("");
+      return;
+    }
+
+    const validation = validateCustomerName(name);
+    setPartyNameError(validation.isValid ? "" : validation.error || "");
+  };
+
+  const handlePartyGstinChange = (gstin: string) => {
+    // Auto-uppercase and remove spaces
+    const cleanGstin = gstin.replace(/\s/g, "").toUpperCase();
+    setPartyGstin(cleanGstin);
+
+    if (!cleanGstin) {
+      setPartyGstinError("");
+      setGstinState("");
+      return;
+    }
+
+    const validation = validateGSTIN(cleanGstin);
+    setPartyGstinError(validation.isValid ? "" : validation.error || "");
+
+    // Show state info if GSTIN is valid or partially valid
+    if (cleanGstin.length >= 2) {
+      const stateName = getStateFromGSTIN(cleanGstin);
+      setGstinState(stateName !== "Unknown" ? stateName : "");
+    } else {
+      setGstinState("");
+    }
   };
 
   return (
@@ -285,7 +405,7 @@ export default function OptimizedInvoice() {
                 })}
               </ThemedText>
             </TouchableOpacity>
-            
+
             <View style={styles.invoiceNumberBadge}>
               <ThemedText style={styles.invoiceNumberText}>
                 {invoiceNumber}
@@ -363,24 +483,70 @@ export default function OptimizedInvoice() {
             Customer Information
           </ThemedText>
           <View style={styles.customerCard}>
-            <TextInput
-              label="Party Name *"
-              value={partyName}
-              onChangeText={setPartyName}
-              placeholder={saleType === "B2C" ? "CASH" : "Enter customer name"}
-              variant="outline"
-              containerStyle={styles.inputContainer}
-            />
-
-            {saleType === "B2B" && (
+            <View style={styles.inputContainer}>
               <TextInput
-                label="GSTIN *"
-                value={partyGstin}
-                onChangeText={setPartyGstin}
-                placeholder="Enter GSTIN (e.g., 22AAAAA0000A1Z5)"
+                label="Party Name *"
+                value={partyName}
+                onChangeText={handlePartyNameChange}
+                placeholder={
+                  saleType === "B2C" ? "CASH" : "Enter customer name"
+                }
                 variant="outline"
                 containerStyle={styles.inputContainer}
               />
+              {partyNameError ? (
+                <View style={styles.errorContainer}>
+                  <Ionicons name="alert-circle" size={16} color="#FF3B30" />
+                  <ThemedText style={styles.errorText}>
+                    {partyNameError}
+                  </ThemedText>
+                </View>
+              ) : null}
+            </View>
+
+            {saleType === "B2B" && (
+              <View style={styles.inputContainer}>
+                <TextInput
+                  label="GSTIN *"
+                  value={partyGstin}
+                  onChangeText={handlePartyGstinChange}
+                  placeholder="22AAAAA0000A1Z5"
+                  variant="outline"
+                  containerStyle={styles.inputContainer}
+                  maxLength={15}
+                  autoCapitalize="characters"
+                />
+
+                {/* GSTIN Helper Info */}
+                {partyGstin.length > 0 && !partyGstinError && gstinState && (
+                  <View style={styles.successContainer}>
+                    <Ionicons name="location" size={16} color="#34C759" />
+                    <ThemedText style={styles.successText}>
+                      State: {gstinState}
+                    </ThemedText>
+                  </View>
+                )}
+
+                {partyGstinError ? (
+                  <View style={styles.errorContainer}>
+                    <Ionicons name="alert-circle" size={16} color="#FF3B30" />
+                    <ThemedText style={styles.errorText}>
+                      {partyGstinError}
+                    </ThemedText>
+                  </View>
+                ) : (
+                  <View style={styles.helpContainer}>
+                    <Ionicons
+                      name="information-circle"
+                      size={14}
+                      color="#666"
+                    />
+                    <ThemedText style={styles.helpText}>
+                      Format: 15 digits (e.g., 22AAAAA0000A1Z5)
+                    </ThemedText>
+                  </View>
+                )}
+              </View>
             )}
           </View>
         </View>
@@ -573,7 +739,10 @@ export default function OptimizedInvoice() {
           <Button
             variant="filled"
             onPress={handleSaveInvoice}
-            style={[styles.actionButton, styles.primaryButton]}
+            style={StyleSheet.flatten([
+              styles.actionButton,
+              styles.primaryButton,
+            ])}
             disabled={loading}
           >
             <Ionicons name="save-outline" size={18} color="#fff" />
@@ -1035,5 +1204,32 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#1a1a1a",
     marginBottom: 0,
+  },
+  errorContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  errorText: {
+    fontSize: 12,
+    color: "#FF3B30",
+  },
+  successContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  successText: {
+    fontSize: 12,
+    color: "#34C759",
+  },
+  helpContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  helpText: {
+    fontSize: 12,
+    color: "#666",
   },
 });
