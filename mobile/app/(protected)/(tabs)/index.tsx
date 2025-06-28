@@ -104,6 +104,11 @@ export default function Dashboard() {
       return "Unknown";
     }
 
+    // Handle CURRENT_TIMESTAMP literal string
+    if (dateString.trim().toUpperCase() === "CURRENT_TIMESTAMP") {
+      return "N/A";
+    }
+
     // Handle SQLite datetime format and ISO strings
     let date: Date;
     

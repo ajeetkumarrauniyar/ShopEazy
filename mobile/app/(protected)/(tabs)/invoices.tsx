@@ -128,11 +128,25 @@ export default function InvoicesScreen() {
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-IN", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
+    if (!dateString || dateString.trim() === "") {
+      return "Unknown";
+    }
+
+    // Handle CURRENT_TIMESTAMP literal string
+    if (dateString.trim().toUpperCase() === "CURRENT_TIMESTAMP") {
+      return "N/A";
+    }
+
+    try {
+      return new Date(dateString).toLocaleDateString("en-IN", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      });
+    } catch (error) {
+      console.warn("Invalid date format:", dateString);
+      return "Invalid date";
+    }
   };
 
   const renderInvoiceItem = ({ item }: { item: InvoiceWithItems }) => (
@@ -694,4 +708,4 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#007AFF',
   },
-}); 
+});
