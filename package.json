@@ -1,0 +1,37 @@
+{
+  "name": "invoice-generator-monorepo",
+  "version": "1.0.0",
+  "description": "Invoice generator application with admin panel, mobile app, and server",
+  "private": true,
+  "workspaces": [
+    "admin",
+    "mobile",
+    "server"
+  ],
+  "scripts": {
+    "install:all": "npm install && npm run install:admin && npm run install:mobile && npm run install:server",
+    "install:admin": "cd admin && npm install",
+    "install:mobile": "cd mobile && npm install",
+    "install:server": "cd server && npm install",
+    "dev:admin": "cd admin && npm run dev",
+    "dev:mobile": "cd mobile && npm run dev",
+    "dev:server": "cd server && npm run dev",
+    "build:admin": "cd admin && npm run build",
+    "build:server": "cd server && npm run build",
+    "start:admin": "cd admin && npm start",
+    "start:server": "cd server && npm start"
+  },
+  "keywords": [
+    "invoice",
+    "generator",
+    "react-native",
+    "nextjs",
+    "express",
+    "monorepo"
+  ],
+  "author": "Ajeet Kumar | IT_Maverick_Solutions",
+  "license": "ISC",
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
