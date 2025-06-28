@@ -10,3 +10,21 @@ export const db = drizzle(expoDb, { schema });
 export type { Invoice, InvoiceItem, InvoiceWithItems, NewInvoice, NewInvoiceItem } from "./schema";
 export { schema };
 
+/**
+ * Get database instance for direct operations
+ * Use this when you need to perform operations outside of Drizzle ORM
+ */
+export const getRawDatabase = () => expoDb;
+
+/**
+ * Close database connection
+ * Call this when the app is shutting down
+ */
+export const closeDatabase = () => {
+  try {
+    expoDb.closeSync();
+    console.log("✅ Database connection closed");
+  } catch (error) {
+    console.error("❌ Error closing database:", error);
+  }
+};
