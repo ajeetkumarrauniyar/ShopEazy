@@ -113,9 +113,9 @@ export default function Dashboard() {
     let date: Date;
     
     // If it's an SQLite datetime format (YYYY-MM-DD HH:mm:ss)
-    if (dateString.includes(' ') && !dateString.includes('T')) {
+    if (dateString.includes(" ") && !dateString.includes("T")) {
       // Convert SQLite datetime to ISO format
-      const isoString = dateString.replace(' ', 'T') + 'Z';
+      const isoString = dateString.replace(" ", "T") + "Z";
       date = new Date(isoString);
     } else {
       date = new Date(dateString);
