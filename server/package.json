@@ -1,17 +1,46 @@
 {
-    "private": true,
-    "type": "module",
-    "scripts": {
-        "dev": "npm run build && php artisan serve",
-        "build": "vite build"
-    },
-    "devDependencies": {
-        "autoprefixer": "^10.4.20",
-        "axios": "^1.7.4",
-        "concurrently": "^9.0.1",
-        "laravel-vite-plugin": "^1.2.0",
-        "postcss": "^8.4.47",
-        "tailwindcss": "^3.4.13",
-        "vite": "^6.0.11"
-    }
+  "name": "server",
+  "version": "1.0.0",
+  "main": "server.js",
+  "description": "Simple invoice generator React Native app with Express server",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsx watch src/index.ts",
+    "lint": "eslint src",
+    "prettier": "prettier --write src/**/*.ts",
+    "format": "npm run prettier"
+  },
+  "imports": {
+    "@/*": "./dist/*",
+    "~/*": "./*"
+  },
+  "author": "Ajeet Kumar | IT_Maverick_Solutions",
+  "license": "ISC",
+  "dependencies": {
+    "@clerk/clerk-sdk-node": "^4.13.23",
+    "@prisma/client": "^6.7.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.5.0",
+    "express": "^5.1.0",
+    "morgan": "^1.10.0",
+    "winston": "^3.17.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.26.0",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^5.0.1",
+    "@types/morgan": "^1.9.9",
+    "@types/node": "^22.15.3",
+    "chalk": "^5.4.1",
+    "eslint": "^9.26.0",
+    "eslint-config-prettier": "^10.1.2",
+    "eslint-plugin-prettier": "^5.3.1",
+    "globals": "^16.0.0",
+    "prettier": "^3.5.3",
+    "tsx": "^4.19.4",
+    "typescript": "^5.8.3",
+    "typescript-eslint": "^8.31.1"
+  }
 }
