@@ -3,34 +3,36 @@ import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { Button } from "@/components/ui/Button";
 import { TextInput } from "@/components/ui/TextInput";
+import { useSettingsStore } from "@/stores";
 import { useAuth, useUser } from "@clerk/clerk-expo";
 import { Ionicons } from "@expo/vector-icons";
-import { useState } from "react";
+import { useEffect } from "react";
 import { Alert, ScrollView, StyleSheet, Switch, View } from "react-native";
 
 export default function Settings() {
   const { signOut } = useAuth();
   const { user } = useUser();
 
-  // Personal Information
-  const [firstName, setFirstName] = useState(user?.firstName || "");
-  const [lastName, setLastName] = useState(user?.lastName || "");
-  const [phoneNumber, setPhoneNumber] = useState("");
+  const {
+    personalInfo,
+    businessInfo,
+    appSettings,
+    invoiceSettings,
+    updatePersonalInfo,
+    updateBusinessInfo,
+    updateAppSettings,
+    updateInvoiceSettings,
+  } = useSettingsStore();
 
-  // Business Information
-  const [businessName, setBusinessName] = useState("");
-  const [businessEmail, setBusinessEmail] = useState("");
-  const [businessPhone, setBusinessPhone] = useState("");
-  const [businessAddress, setBusinessAddress] = useState("");
-
-  // App Settings
-  const [notifications, setNotifications] = useState(true);
-  const [autoSave, setAutoSave] = useState(true);
-  const [darkMode, setDarkMode] = useState(false);
-
-  // Invoice Settings
-  const [invoicePrefix, setInvoicePrefix] = useState("INV");
-  const [paymentTerms, setPaymentTerms] = useState("Net 30");
+  // Initialize with user data from Clerk
+  useEffect(() => {
+    if (user) {
+      updatePersonalInfo({
+        firstName: user.firstName || "",
+        lastName: user.lastName || "",
+      });
+    }
+  }, [user, updatePersonalInfo]);
 
   const handleSaveSettings = () => {
     Alert.alert("Success", "Settings saved successfully!");
@@ -90,8 +92,8 @@ export default function Settings() {
 
           <TextInput
             label="First Name"
-            value={firstName}
-            onChangeText={setFirstName}
+            value={personalInfo.firstName}
+            onChangeText={(firstName) => updatePersonalInfo({ firstName })}
             placeholder="Enter your first name"
             variant="outline"
             containerStyle={styles.inputContainer}
@@ -99,8 +101,8 @@ export default function Settings() {
 
           <TextInput
             label="Last Name"
-            value={lastName}
-            onChangeText={setLastName}
+            value={personalInfo.lastName}
+            onChangeText={(lastName) => updatePersonalInfo({ lastName })}
             placeholder="Enter your last name"
             variant="outline"
             containerStyle={styles.inputContainer}
@@ -108,8 +110,8 @@ export default function Settings() {
 
           <TextInput
             label="Phone Number"
-            value={phoneNumber}
-            onChangeText={setPhoneNumber}
+            value={personalInfo.phoneNumber}
+            onChangeText={(phoneNumber) => updatePersonalInfo({ phoneNumber })}
             placeholder="(555) 123-4567"
             variant="outline"
             keyboardType="phone-pad"
@@ -125,8 +127,8 @@ export default function Settings() {
 
           <TextInput
             label="Business Name"
-            value={businessName}
-            onChangeText={setBusinessName}
+            value={businessInfo.name}
+            onChangeText={(name) => updateBusinessInfo({ name })}
             placeholder="Your Business Name"
             variant="outline"
             containerStyle={styles.inputContainer}
@@ -134,8 +136,8 @@ export default function Settings() {
 
           <TextInput
             label="Business Email"
-            value={businessEmail}
-            onChangeText={setBusinessEmail}
+            value={businessInfo.email}
+            onChangeText={(email) => updateBusinessInfo({ email })}
             placeholder="business@example.com"
             variant="outline"
             keyboardType="email-address"
@@ -144,8 +146,8 @@ export default function Settings() {
 
           <TextInput
             label="Business Phone"
-            value={businessPhone}
-            onChangeText={setBusinessPhone}
+            value={businessInfo.phone}
+            onChangeText={(phone) => updateBusinessInfo({ phone })}
             placeholder="(555) 123-4567"
             variant="outline"
             keyboardType="phone-pad"
@@ -154,8 +156,8 @@ export default function Settings() {
 
           <TextInput
             label="Business Address"
-            value={businessAddress}
-            onChangeText={setBusinessAddress}
+            value={businessInfo.address}
+            onChangeText={(address) => updateBusinessInfo({ address })}
             placeholder="Business address"
             variant="outline"
             multiline
@@ -172,17 +174,17 @@ export default function Settings() {
 
           <TextInput
             label="Invoice Prefix"
-            value={invoicePrefix}
-            onChangeText={setInvoicePrefix}
+            value={invoiceSettings.prefix}
+            onChangeText={(prefix) => updateInvoiceSettings({ prefix })}
             placeholder="INV"
             variant="outline"
             containerStyle={styles.inputContainer}
           />
 
           <TextInput
-            label="Default Payment Terms"
-            value={paymentTerms}
-            onChangeText={setPaymentTerms}
+            label="Payment Terms"
+            value={invoiceSettings.paymentTerms}
+            onChangeText={(paymentTerms) => updateInvoiceSettings({ paymentTerms })}
             placeholder="Net 30"
             variant="outline"
             containerStyle={styles.inputContainer}
@@ -199,17 +201,15 @@ export default function Settings() {
             <View style={styles.settingLeft}>
               <Ionicons name="notifications" size={20} color="#007AFF" />
               <View style={styles.settingText}>
-                <ThemedText style={styles.settingLabel}>
-                  Notifications
-                </ThemedText>
+                <ThemedText style={styles.settingLabel}>Notifications</ThemedText>
                 <ThemedText style={styles.settingDescription}>
-                  Receive app notifications
+                  Receive push notifications
                 </ThemedText>
               </View>
             </View>
             <Switch
-              value={notifications}
-              onValueChange={setNotifications}
+              value={appSettings.notifications}
+              onValueChange={(notifications) => updateAppSettings({ notifications })}
               trackColor={{ false: "#767577", true: "#007AFF" }}
               thumbColor="#f4f3f4"
             />
@@ -226,8 +226,8 @@ export default function Settings() {
               </View>
             </View>
             <Switch
-              value={autoSave}
-              onValueChange={setAutoSave}
+              value={appSettings.autoSave}
+              onValueChange={(autoSave) => updateAppSettings({ autoSave })}
               trackColor={{ false: "#767577", true: "#007AFF" }}
               thumbColor="#f4f3f4"
             />
@@ -244,8 +244,8 @@ export default function Settings() {
               </View>
             </View>
             <Switch
-              value={darkMode}
-              onValueChange={setDarkMode}
+              value={appSettings.darkMode}
+              onValueChange={(darkMode) => updateAppSettings({ darkMode })}
               trackColor={{ false: "#767577", true: "#007AFF" }}
               thumbColor="#f4f3f4"
             />
@@ -261,34 +261,24 @@ export default function Settings() {
           <Button
             variant="outline"
             onPress={handleExportData}
-            style={styles.actionButton}
+            style={styles.dataButton}
           >
-            <Ionicons
-              name="download"
-              size={16}
-              color="#007AFF"
-              style={styles.buttonIcon}
-            />
+            <Ionicons name="download" size={20} color="#007AFF" />
             Export Data
           </Button>
 
           <Button
             variant="outline"
             onPress={handleBackupData}
-            style={styles.actionButton}
+            style={styles.dataButton}
           >
-            <Ionicons
-              name="cloud-upload"
-              size={16}
-              color="#007AFF"
-              style={styles.buttonIcon}
-            />
+            <Ionicons name="cloud-upload" size={20} color="#007AFF" />
             Backup Data
           </Button>
         </View>
 
-        {/* Action Buttons */}
-        <View style={styles.actionButtons}>
+        {/* Save Settings */}
+        <View style={styles.section}>
           <Button
             variant="filled"
             onPress={handleSaveSettings}
@@ -296,22 +286,21 @@ export default function Settings() {
           >
             Save Settings
           </Button>
+        </View>
 
-          <ResetButtonDevOnly />
+        {/* Sign Out */}
+        <View style={styles.section}>
           <Button
             variant="outline"
             onPress={handleSignOut}
-            style={[styles.actionButton, styles.signOutButton]}
+            style={styles.signOutButton}
           >
-            <Ionicons
-              name="log-out"
-              size={16}
-              color="#FF3B30"
-              style={styles.buttonIcon}
-            />
+            <Ionicons name="log-out" size={20} color="#FF3B30" />
             Sign Out
           </Button>
         </View>
+
+        <ResetButtonDevOnly />
       </ScrollView>
     </ThemedView>
   );
@@ -392,23 +381,13 @@ const styles = StyleSheet.create({
     fontSize: 12,
     opacity: 0.6,
   },
-  actionButtons: {
-    marginTop: 16,
-    marginBottom: 32,
-  },
-  actionButton: {
+  dataButton: {
     marginBottom: 12,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
   },
   saveButton: {
     marginBottom: 12,
   },
   signOutButton: {
     borderColor: "#FF3B30",
-  },
-  buttonIcon: {
-    marginRight: 8,
   },
 });

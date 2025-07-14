@@ -4,11 +4,13 @@ import { Button } from "@/components/ui/Button";
 import { TextInput } from "@/components/ui/TextInput";
 import type { InvoiceWithItems } from "@/db/db";
 import { ensureDatabaseInitialized } from "@/db/migrate";
+import { useInvoices } from "@/hooks/useInvoices";
 import {
   getAllInvoicesWithItems,
   getNextInvoiceNumber,
-  saveInvoice,
 } from "@/services/invoiceService";
+import { useFormStore, useInvoiceStore, useProductsStore } from "@/stores";
+import { useNetworkStore } from "@/stores/networkStore";
 import {
   getStateFromGSTIN,
   validateCustomerName,
@@ -55,15 +57,50 @@ const mockProducts: Product[] = [
 ];
 
 export default function OptimizedInvoice() {
+  const {
+    saleType,
+    partyName,
+    partyGstin,
+    lineItems,
+    invoiceNumber,
+    invoiceDate,
+    loading,
+    showProductModal,
+    selectedItemIndex,
+    productSearchQuery,
+    setSaleType,
+    setPartyName,
+    setPartyGstin,
+    setInvoiceNumber,
+    setInvoiceDate,
+    addLineItem,
+    removeLineItem,
+    updateLineItem,
+    setLoading,
+    setShowProductModal,
+    setSelectedItemIndex,
+    setProductSearchQuery,
+    getSubtotal,
+    getTaxAmount,
+    getTotal,
+    resetForm,
+    validateForm,
+  } = useFormStore();
+
+  const { addInvoice, setInvoices } = useInvoiceStore();
+
+  const {
+    products,
+    searchQuery: productStoreSearchQuery,
+    getFilteredProducts,
+    setSearchQuery: setProductStoreSearchQuery,
+  } = useProductsStore();
+
+  const { createInvoice, refreshInvoices } = useInvoices();
+  const { isOnline } = useNetworkStore();
+
   // Database state
   const [data, setData] = useState<InvoiceWithItems[]>([]);
-
-  // Sale Type (B2C/B2B)
-  const [saleType, setSaleType] = useState<"B2C" | "B2B">("B2C");
-
-  // Customer Information
-  const [partyName, setPartyName] = useState("CASH");
-  const [partyGstin, setPartyGstin] = useState("");
 
   // Validation states
   const [partyNameError, setPartyNameError] = useState("");
@@ -71,22 +108,7 @@ export default function OptimizedInvoice() {
   const [gstinState, setGstinState] = useState("");
 
   // Invoice Details
-  const [invoiceNumber, setInvoiceNumber] = useState("");
-  const [invoiceDate, setInvoiceDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
-
-  // Line Items
-  const [lineItems, setLineItems] = useState<LineItem[]>([
-    { id: "1", productName: "", quantity: "", rate: "", amount: 0 },
-  ]);
-
-  // Product Search Modal
-  const [showProductModal, setShowProductModal] = useState(false);
-  const [selectedItemIndex, setSelectedItemIndex] = useState(0);
-  const [productSearchQuery, setProductSearchQuery] = useState("");
-
-  // Loading state
-  const [loading, setLoading] = useState(false);
 
   // Add ref for the ScrollView
   const lineItemsScrollRef = useRef<ScrollView>(null);
@@ -110,6 +132,7 @@ export default function OptimizedInvoice() {
     try {
       const invoices = await getAllInvoicesWithItems();
       setData(invoices);
+      setInvoices(invoices); // Update Zustand store
     } catch (error) {
       console.error("Error loading invoices:", error);
     }
@@ -149,52 +172,10 @@ export default function OptimizedInvoice() {
     }
   };
 
-  const addLineItem = () => {
-    const newItem: LineItem = {
-      id: Date.now().toString(),
-      productName: "",
-      quantity: "",
-      rate: "",
-      amount: 0,
-    };
-    setLineItems([...lineItems, newItem]);
-
-    // Auto scroll to bottom after adding new item
-    setTimeout(() => {
-      lineItemsScrollRef.current?.scrollToEnd({ animated: true });
-    }, 100);
-  };
-
-  const removeLineItem = (id: string) => {
-    if (lineItems.length > 1) {
-      setLineItems(lineItems.filter((item) => item.id !== id));
-    }
-  };
-
-  const updateLineItem = (id: string, field: keyof LineItem, value: string) => {
-    setLineItems(
-      lineItems.map((item) => {
-        if (item.id === id) {
-          const updatedItem = { ...item, [field]: value };
-
-          // Calculate amount when quantity or rate changes
-          if (field === "quantity" || field === "rate") {
-            const quantity =
-              parseFloat(field === "quantity" ? value : item.quantity) || 0;
-            const rate = parseFloat(field === "rate" ? value : item.rate) || 0;
-            updatedItem.amount = quantity * rate;
-          }
-
-          return updatedItem;
-        }
-        return item;
-      })
-    );
-  };
-
   const openProductSelector = (index: number) => {
     setSelectedItemIndex(index);
     setProductSearchQuery("");
+    setProductStoreSearchQuery("");
     setShowProductModal(true);
   };
 
@@ -202,78 +183,45 @@ export default function OptimizedInvoice() {
     const itemId = lineItems[selectedItemIndex].id;
 
     // Update both productName and rate in a single state update
-    setLineItems((prevItems) =>
-      prevItems.map((item) => {
-        if (item.id === itemId) {
-          const updatedItem = {
-            ...item,
-            productName: product.name,
-            rate: product.defaultRate.toString(),
-          };
+    const updatedItems = lineItems.map((item) => {
+      if (item.id === itemId) {
+        const updatedItem = {
+          ...item,
+          productName: product.name,
+          rate: product.defaultRate.toString(),
+        };
 
-          // Recalculate amount if quantity exists
-          if (item.quantity) {
-            const quantity = parseFloat(item.quantity) || 0;
-            const rate = product.defaultRate;
-            updatedItem.amount = quantity * rate;
-          }
-
-          return updatedItem;
+        // Recalculate amount if quantity exists
+        if (item.quantity) {
+          const quantity = parseFloat(item.quantity) || 0;
+          const rate = product.defaultRate;
+          updatedItem.amount = quantity * rate;
         }
-        return item;
-      })
-    );
+
+        return updatedItem;
+      }
+      return item;
+    });
+
+    updateLineItem(itemId, "productName", product.name);
+    updateLineItem(itemId, "rate", product.defaultRate.toString());
 
     setShowProductModal(false);
   };
 
-  const filteredProducts = mockProducts.filter((product) =>
+  // Use products from store with search functionality
+  const filteredProducts = products.filter((product) =>
     product.name.toLowerCase().includes(productSearchQuery.toLowerCase())
   );
 
-  // Calculations
-  const subtotal = lineItems.reduce((sum, item) => sum + item.amount, 0);
-  const taxRate = saleType === "B2B" ? 18 : 0; // 18% GST for B2B, 0% for B2C
-  const taxAmount = subtotal * (taxRate / 100);
-  const total = subtotal + taxAmount;
+  // Calculations using form store methods
+  const subtotal = getSubtotal();
+  const taxAmount = getTaxAmount();
+  const total = getTotal();
 
   const handleSaveInvoice = async () => {
-    let hasValidationErrors = false;
-
-    // Validate customer name
-    const nameValidation = validateCustomerName(partyName);
-    if (!nameValidation.isValid) {
-      setPartyNameError(nameValidation.error || "Invalid customer name");
-      hasValidationErrors = true;
-    }
-
-    // Validate GSTIN for B2B sales
-    if (saleType === "B2B") {
-      if (!partyGstin.trim()) {
-        setPartyGstinError("GSTIN is required for B2B sales");
-        hasValidationErrors = true;
-      } else {
-        const gstinValidation = validateGSTIN(partyGstin);
-        if (!gstinValidation.isValid) {
-          setPartyGstinError(gstinValidation.error || "Invalid GSTIN format");
-          hasValidationErrors = true;
-        }
-      }
-    }
-
-    // Check line items
-    if (
-      !lineItems.some((item) => item.productName && item.quantity && item.rate)
-    ) {
-      Alert.alert(
-        "Error",
-        "Please add at least one product with quantity and rate"
-      );
-      return;
-    }
-
-    // Stop if there are validation errors
-    if (hasValidationErrors) {
+    // Use form store validation
+    if (!validateForm()) {
       Alert.alert(
         "Validation Error",
         "Please fix the errors above before saving the invoice"
@@ -304,35 +252,33 @@ export default function OptimizedInvoice() {
         customerGstin: partyGstin.trim() || undefined,
         subtotal,
         taxAmount,
-        taxRate,
+        taxRate: saleType === "B2B" ? 18 : 0,
         totalAmount: total,
         lineItems: preparedItems,
         createdAt: now,
         updatedAt: now,
       };
 
-      // Save to local database
-      const invoiceId = await saveInvoice(invoiceData);
+      // Save invoice to local database
+      await createInvoice(invoiceData);
 
-      console.log("Invoice saved successfully with ID:", invoiceId);
+      console.log("Invoice created successfully");
 
-      // Refresh the data from database
-      await loadInvoicesFromDatabase();
+      // Refresh invoices data
+      await refreshInvoices();
 
-      // Reset form
-      setLineItems([
-        { id: "1", productName: "", quantity: "", rate: "", amount: 0 },
-      ]);
-      setSaleType("B2C");
-      setPartyName("CASH");
-      setPartyGstin("");
-      setPartyNameError("");
-      setPartyGstinError("");
-      setGstinState("");
-      setInvoiceDate(new Date());
+      // Reset form using store method
+      resetForm();
       await generateInvoiceNumber();
 
-      Alert.alert("Success", "Invoice saved successfully!");
+      if (isOnline) {
+        Alert.alert("Success", "Invoice saved successfully!");
+      } else {
+        Alert.alert(
+          "Saved Offline",
+          "Invoice saved locally and will sync when you're back online"
+        );
+      }
     } catch (error: any) {
       console.error("Error saving invoice:", error);
       Alert.alert("Error", "Failed to save invoice. Please try again.");
@@ -384,6 +330,28 @@ export default function OptimizedInvoice() {
 
   return (
     <ThemedView style={styles.container}>
+      {/* Network Status Indicator */}
+      <View
+        style={[
+          styles.networkIndicator,
+          isOnline ? styles.online : styles.offline,
+        ]}
+      >
+        <Ionicons
+          name={isOnline ? "wifi" : "wifi-outline"}
+          size={16}
+          color={isOnline ? "#34C759" : "#FF9500"}
+        />
+        <ThemedText
+          style={[
+            styles.networkText,
+            isOnline ? styles.onlineText : styles.offlineText,
+          ]}
+        >
+          {isOnline ? "Online" : "Offline - Changes will sync later"}
+        </ThemedText>
+      </View>
+
       <ScrollView
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
@@ -707,9 +675,7 @@ export default function OptimizedInvoice() {
 
             {saleType === "B2B" && (
               <View style={styles.summaryRow}>
-                <ThemedText style={styles.summaryLabel}>
-                  GST ({taxRate}%):
-                </ThemedText>
+                <ThemedText style={styles.summaryLabel}>GST (18%):</ThemedText>
                 <ThemedText style={styles.summaryValue}>
                   ₹{taxAmount.toFixed(2)}
                 </ThemedText>
@@ -1231,5 +1197,31 @@ const styles = StyleSheet.create({
   helpText: {
     fontSize: 12,
     color: "#666",
+  },
+  networkIndicator: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 12,
+    backgroundColor: "#fff",
+    borderBottomWidth: 1,
+    borderBottomColor: "#e0e0e0",
+  },
+  online: {
+    backgroundColor: "#e8f5e8",
+  },
+  offline: {
+    backgroundColor: "#fff3e0",
+  },
+  networkText: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#1a1a1a",
+    marginLeft: 8,
+  },
+  onlineText: {
+    color: "#34C759",
+  },
+  offlineText: {
+    color: "#FF9500",
   },
 });

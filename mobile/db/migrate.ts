@@ -3,21 +3,9 @@ import { db } from "./db";
 
 export async function initializeDatabase() {
   try {
-    // Run the migration SQL
-    await db.run(sql`
-      CREATE TABLE IF NOT EXISTS invoice_items (
-        id integer PRIMARY KEY AUTOINCREMENT NOT NULL,
-        invoice_id integer NOT NULL,
-        product_id text,
-        product_name text NOT NULL,
-        quantity real NOT NULL,
-        rate real NOT NULL,
-        amount real NOT NULL,
-        created_at text DEFAULT (datetime('now')),
-        FOREIGN KEY (invoice_id) REFERENCES invoices(id) ON UPDATE no action ON DELETE cascade
-      );
-    `);
+    console.log("🔄 Creating database tables...");
 
+    // Create tables in the correct order (dependencies first)
     await db.run(sql`
       CREATE TABLE IF NOT EXISTS invoices (
         id integer PRIMARY KEY AUTOINCREMENT NOT NULL,
@@ -42,6 +30,20 @@ export async function initializeDatabase() {
     `);
 
     await db.run(sql`
+      CREATE TABLE IF NOT EXISTS invoice_items (
+        id integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+        invoice_id integer NOT NULL,
+        product_id text,
+        product_name text NOT NULL,
+        quantity real NOT NULL,
+        rate real NOT NULL,
+        amount real NOT NULL,
+        created_at text DEFAULT (datetime('now')),
+        FOREIGN KEY (invoice_id) REFERENCES invoices(id) ON UPDATE no action ON DELETE cascade
+      );
+    `);
+
+    await db.run(sql`
       CREATE TABLE IF NOT EXISTS sync_queue (
         id integer PRIMARY KEY AUTOINCREMENT NOT NULL,
         table_name text NOT NULL,
@@ -54,9 +56,9 @@ export async function initializeDatabase() {
       );
     `);
 
-    console.log("Database initialized successfully");
+    console.log("✅ Database tables created successfully");
   } catch (error) {
-    console.error("Error initializing database:", error);
+    console.error("❌ Error initializing database:", error);
     throw error;
   }
 }
@@ -64,12 +66,12 @@ export async function initializeDatabase() {
 // Call this function to ensure database is initialized
 export async function ensureDatabaseInitialized() {
   try {
-    // Check if tables exist by querying them
+    // Test if tables exist by querying one of them
     await db.run(sql`SELECT 1 FROM invoices LIMIT 1`);
-    console.log("Database already initialized");
+    console.log("✅ Database already initialized");
   } catch (error) {
-    // Tables don't exist, initialize them
-    console.log("Initializing database...");
+    // Tables don't exist or other error, initialize them
+    console.log("🔄 Database tables not found, initializing...");
     await initializeDatabase();
   }
 } 

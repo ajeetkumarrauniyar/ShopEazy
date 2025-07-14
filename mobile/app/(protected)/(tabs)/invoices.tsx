@@ -1,102 +1,73 @@
+import { useCallback } from "react";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { Button } from "@/components/ui/Button";
 import { TextInput } from "@/components/ui/TextInput";
 import type { InvoiceWithItems } from "@/db/db";
-import { ensureDatabaseInitialized } from "@/db/migrate";
-import { deleteInvoice, getAllInvoicesWithItems } from "@/services/invoiceService";
+import { useInvoices } from "@/hooks/useInvoices";
+import { useInvoiceStore } from "@/stores";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
 import {
-  Alert,
-  FlatList,
-  Modal,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  TouchableOpacity,
-  View,
+    Alert,
+    FlatList,
+    Modal,
+    RefreshControl,
+    ScrollView,
+    StyleSheet,
+    TouchableOpacity,
+    View,
 } from "react-native";
 
 export default function InvoicesScreen() {
-  const [invoices, setInvoices] = useState<InvoiceWithItems[]>([]);
-  const [filteredInvoices, setFilteredInvoices] = useState<InvoiceWithItems[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedInvoice, setSelectedInvoice] = useState<InvoiceWithItems | null>(null);
-  const [showInvoiceModal, setShowInvoiceModal] = useState(false);
-  const [filterType, setFilterType] = useState<"all" | "synced" | "pending">("all");
+  const {
+    filteredInvoices,
+    isLoading: loading,
+    refreshInvoices,
+    deleteInvoice,
+    searchQuery,
+    setSearchQuery,
+    filterType,
+    setFilterType,
+    isOnline,
+    isSyncing,
+    hasPendingOperations,
+    pendingOperationsCount,
+    syncPendingOperations,
+  } = useInvoices();
 
-  useEffect(() => {
-    initializeAndLoadData();
-  }, []);
-
-  useEffect(() => {
-    filterInvoices();
-  }, [invoices, searchQuery, filterType]);
-
-  const initializeAndLoadData = async () => {
-    try {
-      await ensureDatabaseInitialized();
-      await loadInvoices();
-    } catch (error) {
-      console.error("Error initializing invoices screen:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadInvoices = async () => {
-    try {
-      const allInvoices = await getAllInvoicesWithItems();
-      setInvoices(allInvoices);
-    } catch (error) {
-      console.error("Error loading invoices:", error);
-    }
-  };
-
-  const filterInvoices = useCallback(() => {
-    let filtered = [...invoices];
-
-    // Apply filter type
-    if (filterType === "synced") {
-      filtered = filtered.filter(invoice => invoice.isSynced);
-    } else if (filterType === "pending") {
-      filtered = filtered.filter(invoice => !invoice.isSynced);
-    }
-
-    // Apply search query
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(
-        invoice =>
-          invoice.invoiceNumber.toLowerCase().includes(query) ||
-          invoice.customerName.toLowerCase().includes(query) ||
-          invoice.saleType.toLowerCase().includes(query)
-      );
-    }
-
-    setFilteredInvoices(filtered);
-  }, [invoices, searchQuery, filterType]);
-
-  const onRefresh = async () => {
-    setRefreshing(true);
-    await loadInvoices();
-    setRefreshing(false);
-  };
+  const { 
+    currentInvoice, 
+    setCurrentInvoice 
+  } = useInvoiceStore();
 
   const handleCreateInvoice = () => {
     router.push('/(protected)/(tabs)/invoice');
   };
 
   const handleViewInvoice = (invoice: InvoiceWithItems) => {
-    setSelectedInvoice(invoice);
-    setShowInvoiceModal(true);
+    setCurrentInvoice(invoice);
   };
 
-  const handleDeleteInvoice = (invoice: InvoiceWithItems) => {
+  const handleDeleteInvoice = useCallback((invoice: InvoiceWithItems) => {
+    const deleteAction = async () => {
+      try {
+        await deleteInvoice(invoice.id!);
+        
+        if (isOnline) {
+          Alert.alert("Success", "Invoice deleted successfully");
+        } else {
+          Alert.alert(
+            "Queued for Deletion", 
+            "Invoice will be deleted when you're back online"
+          );
+        }
+      } catch (error) {
+        console.error("Error deleting invoice:", error);
+        Alert.alert("Error", "Failed to delete invoice");
+      }
+    };
+
     Alert.alert(
       "Delete Invoice",
       `Are you sure you want to delete ${invoice.invoiceNumber}?`,
@@ -108,20 +79,25 @@ export default function InvoicesScreen() {
         {
           text: "Delete",
           style: "destructive",
-          onPress: async () => {
-            try {
-              await deleteInvoice(invoice.id!);
-              await loadInvoices();
-              Alert.alert("Success", "Invoice deleted successfully");
-            } catch (error) {
-              console.error("Error deleting invoice:", error);
-              Alert.alert("Error", "Failed to delete invoice");
-            }
-          },
+          onPress: deleteAction,
         },
       ]
     );
-  };
+  }, [deleteInvoice, isOnline]);
+
+  const handleSyncPendingOperations = useCallback(async () => {
+    if (!isOnline) {
+      Alert.alert("No Internet", "Please check your internet connection");
+      return;
+    }
+
+    try {
+      await syncPendingOperations();
+      Alert.alert("Success", "All pending operations synced");
+    } catch (error) {
+      Alert.alert("Sync Failed", "Some operations could not be synced");
+    }
+  }, [isOnline, syncPendingOperations]);
 
   const formatCurrency = (amount: number) => {
     return `₹${amount.toFixed(2)}`;
@@ -151,7 +127,11 @@ export default function InvoicesScreen() {
 
   const renderInvoiceItem = ({ item }: { item: InvoiceWithItems }) => (
     <TouchableOpacity
-      style={styles.invoiceCard}
+      style={[
+        styles.invoiceCard,
+        !item.isSynced && styles.unsynced,
+        !isOnline && styles.offline
+      ]}
       onPress={() => handleViewInvoice(item)}
     >
       <View style={styles.invoiceHeader}>
@@ -176,10 +156,17 @@ export default function InvoicesScreen() {
           </View>
         </View>
         <TouchableOpacity
-          style={styles.deleteButton}
+          style={[
+            styles.deleteButton,
+            !isOnline && styles.offlineAction
+          ]}
           onPress={() => handleDeleteInvoice(item)}
         >
-          <Ionicons name="trash-outline" size={16} color="#FF3B30" />
+          <Ionicons 
+            name="trash-outline" 
+            size={16} 
+            color={!isOnline ? "#999" : "#FF3B30"} 
+          />
         </TouchableOpacity>
       </View>
 
@@ -202,65 +189,84 @@ export default function InvoicesScreen() {
     </TouchableOpacity>
   );
 
-  if (loading) {
-    return (
-      <ThemedView style={styles.container}>
-        <View style={styles.loadingContainer}>
-          <ThemedText>Loading invoices...</ThemedText>
-        </View>
-      </ThemedView>
-    );
-  }
+  const renderHeader = () => (
+    <View style={styles.header}>
+      {/* Network Status */}
+      <View style={[styles.networkStatus, isOnline ? styles.online : styles.offlineStatus]}>
+        <Ionicons 
+          name={isOnline ? "wifi" : "wifi-outline"} 
+          size={16} 
+          color={isOnline ? "#34C759" : "#FF9500"} 
+        />
+        <ThemedText style={[styles.networkText, isOnline ? styles.onlineText : styles.offlineText]}>
+          {isOnline ? "Online" : "Offline"}
+        </ThemedText>
+        
+        {hasPendingOperations && (
+          <TouchableOpacity 
+            style={styles.syncButton}
+            onPress={handleSyncPendingOperations}
+            disabled={!isOnline || isSyncing}
+          >
+            <Ionicons 
+              name={isSyncing ? "sync" : "cloud-upload"} 
+              size={14} 
+              color={isOnline ? "#007AFF" : "#999"} 
+            />
+            <ThemedText style={styles.syncButtonText}>
+              {isSyncing ? "Syncing..." : `Sync (${pendingOperationsCount})`}
+            </ThemedText>
+          </TouchableOpacity>
+        )}
+      </View>
+
+      {/* Search */}
+      <TextInput
+        label=""
+        value={searchQuery}
+        onChangeText={setSearchQuery}
+        placeholder="Search invoices..."
+        variant="outline"
+        containerStyle={styles.searchInput}
+      />
+
+      {/* Filters */}
+      <View style={styles.filtersContainer}>
+        {(["all", "synced", "pending"] as const).map((filter) => (
+          <TouchableOpacity
+            key={filter}
+            style={[
+              styles.filterButton,
+              filterType === filter && styles.activeFilterButton,
+            ]}
+            onPress={() => setFilterType(filter)}
+          >
+            <ThemedText
+              style={[
+                styles.filterText,
+                filterType === filter && styles.activeFilterText,
+              ]}
+            >
+              {filter.charAt(0).toUpperCase() + filter.slice(1)}
+            </ThemedText>
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      {/* Create Invoice Button */}
+      <Button
+        variant="filled"
+        onPress={handleCreateInvoice}
+        style={styles.createButton}
+      >
+        <Ionicons name="add-circle" size={20} color="white" />
+        Create New Invoice
+      </Button>
+    </View>
+  );
 
   return (
     <ThemedView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <ThemedText type="title" style={styles.title}>Invoices</ThemedText>
-        <TouchableOpacity onPress={handleCreateInvoice} style={styles.createButton}>
-          <Ionicons name="add" size={24} color="#007AFF" />
-        </TouchableOpacity>
-      </View>
-
-      {/* Search and Filters */}
-      <View style={styles.filtersContainer}>
-        <TextInput
-          label=""
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          placeholder="Search invoices..."
-          variant="outline"
-          containerStyle={styles.searchInput}
-        />
-
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterTabs}>
-          <TouchableOpacity
-            style={[styles.filterTab, filterType === "all" && styles.activeFilterTab]}
-            onPress={() => setFilterType("all")}
-          >
-            <ThemedText style={[styles.filterTabText, filterType === "all" && styles.activeFilterTabText]}>
-              All ({invoices.length})
-            </ThemedText>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.filterTab, filterType === "pending" && styles.activeFilterTab]}
-            onPress={() => setFilterType("pending")}
-          >
-            <ThemedText style={[styles.filterTabText, filterType === "pending" && styles.activeFilterTabText]}>
-              Pending ({invoices.filter(i => !i.isSynced).length})
-            </ThemedText>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.filterTab, filterType === "synced" && styles.activeFilterTab]}
-            onPress={() => setFilterType("synced")}
-          >
-            <ThemedText style={[styles.filterTabText, filterType === "synced" && styles.activeFilterTabText]}>
-              Synced ({invoices.filter(i => i.isSynced).length})
-            </ThemedText>
-          </TouchableOpacity>
-        </ScrollView>
-      </View>
-
       {/* Invoice List */}
       {filteredInvoices.length === 0 ? (
         <View style={styles.emptyState}>
@@ -286,7 +292,15 @@ export default function InvoicesScreen() {
           data={filteredInvoices}
           renderItem={renderInvoiceItem}
           keyExtractor={(item) => item.id!.toString()}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+          refreshControl={
+            <RefreshControl 
+              refreshing={loading} 
+              onRefresh={refreshInvoices}
+              colors={["#007AFF"]}
+              tintColor="#007AFF"
+            />
+          }
+          ListHeaderComponent={renderHeader}
           contentContainerStyle={styles.listContainer}
           showsVerticalScrollIndicator={false}
         />
@@ -294,90 +308,56 @@ export default function InvoicesScreen() {
 
       {/* Invoice Detail Modal */}
       <Modal
-        visible={showInvoiceModal}
+        visible={!!currentInvoice}
         animationType="slide"
         presentationStyle="pageSheet"
+        onRequestClose={() => setCurrentInvoice(null)}
       >
-        <ThemedView style={styles.modalContainer}>
-          <View style={styles.modalHeader}>
-            <ThemedText type="subtitle">Invoice Details</ThemedText>
-            <TouchableOpacity onPress={() => setShowInvoiceModal(false)}>
-              <Ionicons name="close" size={24} color="#666" />
-            </TouchableOpacity>
-          </View>
+        {currentInvoice && (
+          <ThemedView style={styles.modalContainer}>
+            <View style={styles.modalHeader}>
+              <ThemedText type="subtitle">Invoice Details</ThemedText>
+              <TouchableOpacity onPress={() => setCurrentInvoice(null)}>
+                <Ionicons name="close" size={24} color="#666" />
+              </TouchableOpacity>
+            </View>
 
-          {selectedInvoice && (
             <ScrollView style={styles.modalContent}>
               <View style={styles.invoiceDetailCard}>
-                <View style={styles.invoiceDetailHeader}>
-                  <ThemedText style={styles.invoiceDetailNumber}>
-                    {selectedInvoice.invoiceNumber}
+                <ThemedText style={styles.modalInvoiceNumber}>
+                  {currentInvoice.invoiceNumber}
+                </ThemedText>
+                <ThemedText style={styles.modalCustomerName}>
+                  {currentInvoice.customerName}
+                </ThemedText>
+                <ThemedText style={styles.modalDate}>
+                  {formatDate(currentInvoice.invoiceDate)}
+                </ThemedText>
+                
+                <View style={styles.modalAmountContainer}>
+                  <ThemedText style={styles.modalAmountLabel}>Total Amount</ThemedText>
+                  <ThemedText style={styles.modalAmountValue}>
+                    {formatCurrency(currentInvoice.totalAmount)}
                   </ThemedText>
-                  <View style={styles.invoiceDetailBadges}>
-                    <View style={[styles.typeBadge, selectedInvoice.saleType === "B2B" ? styles.b2bBadge : styles.b2cBadge]}>
-                      <ThemedText style={[styles.typeBadgeText, selectedInvoice.saleType === "B2B" ? styles.b2bText : styles.b2cText]}>
-                        {selectedInvoice.saleType}
-                      </ThemedText>
-                    </View>
-                    <View style={[styles.syncBadge, selectedInvoice.isSynced ? styles.syncedBadge : styles.pendingBadge]}>
-                      <Ionicons 
-                        name={selectedInvoice.isSynced ? "checkmark-circle" : "time"} 
-                        size={12} 
-                        color={selectedInvoice.isSynced ? "#34C759" : "#FF9500"} 
-                      />
-                      <ThemedText style={[styles.syncText, selectedInvoice.isSynced ? styles.syncedText : styles.pendingText]}>
-                        {selectedInvoice.isSynced ? "Synced" : "Pending"}
-                      </ThemedText>
-                    </View>
-                  </View>
                 </View>
 
-                <View style={styles.customerInfo}>
-                  <ThemedText style={styles.customerDetailName}>{selectedInvoice.customerName}</ThemedText>
-                  {selectedInvoice.customerGstin && (
-                    <ThemedText style={styles.gstinText}>GSTIN: {selectedInvoice.customerGstin}</ThemedText>
-                  )}
-                  <ThemedText style={styles.dateText}>{formatDate(selectedInvoice.invoiceDate)}</ThemedText>
-                </View>
-
-                <View style={styles.itemsSection}>
-                  <ThemedText style={styles.sectionTitle}>Items</ThemedText>
-                  {selectedInvoice.items?.map((item, index) => (
-                    <View key={item.id} style={styles.itemRow}>
-                      <View style={styles.itemInfo}>
+                {currentInvoice.items && currentInvoice.items.length > 0 && (
+                  <View style={styles.itemsList}>
+                    <ThemedText style={styles.itemsTitle}>Items:</ThemedText>
+                    {currentInvoice.items.map((item, index) => (
+                      <View key={index} style={styles.itemRow}>
                         <ThemedText style={styles.itemName}>{item.productName}</ThemedText>
                         <ThemedText style={styles.itemDetails}>
-                          {item.quantity} × ₹{item.rate} = ₹{item.amount.toFixed(2)}
+                          {item.quantity} × ₹{item.rate} = ₹{item.amount}
                         </ThemedText>
                       </View>
-                    </View>
-                  ))}
-                </View>
-
-                <View style={styles.totalsSection}>
-                  {selectedInvoice.saleType === "B2B" && (
-                    <>
-                      <View style={styles.totalRow}>
-                        <ThemedText style={styles.totalLabel}>Subtotal:</ThemedText>
-                        <ThemedText style={styles.totalValue}>{formatCurrency(selectedInvoice.subtotal)}</ThemedText>
-                      </View>
-                      <View style={styles.totalRow}>
-                        <ThemedText style={styles.totalLabel}>
-                          GST ({selectedInvoice.taxRate}%):
-                        </ThemedText>
-                        <ThemedText style={styles.totalValue}>{formatCurrency(selectedInvoice.taxAmount)}</ThemedText>
-                      </View>
-                    </>
-                  )}
-                  <View style={[styles.totalRow, styles.finalTotal]}>
-                    <ThemedText style={styles.finalTotalLabel}>Total Amount:</ThemedText>
-                    <ThemedText style={styles.finalTotalValue}>{formatCurrency(selectedInvoice.totalAmount)}</ThemedText>
+                    ))}
                   </View>
-                </View>
+                )}
               </View>
             </ScrollView>
-          )}
-        </ThemedView>
+          </ThemedView>
+        )}
       </Modal>
     </ThemedView>
   );
@@ -386,61 +366,110 @@ export default function InvoicesScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: '#f8f9fa',
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
     padding: 16,
-    paddingTop: 8,
+    backgroundColor: 'white',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0, 0, 0, 0.1)',
   },
-  title: {
-    fontSize: 28,
-    fontWeight: '700',
-  },
-  createButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(0, 122, 255, 0.1)',
+  networkStatus: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    gap: 8,
+    marginBottom: 16,
+    padding: 12,
+    borderRadius: 12,
   },
-  filtersContainer: {
-    paddingHorizontal: 16,
-    paddingBottom: 16,
+  online: {
+    backgroundColor: 'rgba(52, 199, 89, 0.1)',
+  },
+  offlineStatus: {
+    backgroundColor: 'rgba(255, 149, 0, 0.1)',
+  },
+  networkText: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  onlineText: {
+    color: '#34C759',
+  },
+  offlineText: {
+    color: '#FF9500',
+  },
+  syncButton: {
+    padding: 8,
+    borderRadius: 12,
+    backgroundColor: 'rgba(0, 122, 255, 0.1)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginLeft: 'auto',
+  },
+  syncButtonText: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#007AFF',
   },
   searchInput: {
-    marginBottom: 12,
+    marginBottom: 16,
   },
-  filterTabs: {
+  filtersContainer: {
     flexDirection: 'row',
+    gap: 8,
+    marginBottom: 16,
   },
-  filterTab: {
+  filterButton: {
     paddingHorizontal: 16,
     paddingVertical: 8,
-    marginRight: 8,
     borderRadius: 20,
     backgroundColor: 'rgba(0, 122, 255, 0.1)',
   },
-  activeFilterTab: {
+  activeFilterButton: {
     backgroundColor: '#007AFF',
   },
-  filterTabText: {
+  filterText: {
     fontSize: 14,
     fontWeight: '500',
     color: '#007AFF',
   },
-  activeFilterTabText: {
+  activeFilterText: {
     color: 'white',
+  },
+  createButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: 8,
   },
   listContainer: {
     padding: 16,
+  },
+  emptyState: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 32,
+  },
+  emptyStateText: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  emptyStateSubtext: {
+    fontSize: 14,
+    opacity: 0.6,
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  createInvoiceButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 16,
   },
   invoiceCard: {
     backgroundColor: 'white',
@@ -448,10 +477,17 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 12,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  unsynced: {
+    borderLeftWidth: 4,
+    borderLeftColor: '#FF9500',
+  },
+  offline: {
+    opacity: 0.7,
   },
   invoiceHeader: {
     flexDirection: 'row',
@@ -483,7 +519,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(52, 199, 89, 0.1)',
   },
   typeBadgeText: {
-    fontSize: 12,
+    fontSize: 10,
     fontWeight: '600',
   },
   b2bText: {
@@ -495,10 +531,10 @@ const styles = StyleSheet.create({
   syncBadge: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 4,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
-    gap: 4,
   },
   syncedBadge: {
     backgroundColor: 'rgba(52, 199, 89, 0.1)',
@@ -507,7 +543,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 149, 0, 0.1)',
   },
   syncText: {
-    fontSize: 12,
+    fontSize: 10,
     fontWeight: '500',
   },
   syncedText: {
@@ -517,18 +553,18 @@ const styles = StyleSheet.create({
     color: '#FF9500',
   },
   deleteButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    padding: 8,
+    borderRadius: 8,
     backgroundColor: 'rgba(255, 59, 48, 0.1)',
-    alignItems: 'center',
-    justifyContent: 'center',
+  },
+  offlineAction: {
+    backgroundColor: 'rgba(153, 153, 153, 0.1)',
   },
   invoiceDetails: {
     marginBottom: 12,
   },
   customerName: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '500',
     marginBottom: 4,
   },
@@ -552,56 +588,34 @@ const styles = StyleSheet.create({
   amountValue: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#34C759',
+    color: '#007AFF',
   },
   itemsCount: {
     backgroundColor: 'rgba(0, 122, 255, 0.1)',
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 12,
+    borderRadius: 8,
   },
   itemsCountText: {
     fontSize: 12,
-    color: '#007AFF',
     fontWeight: '500',
-  },
-  emptyState: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 32,
-  },
-  emptyStateText: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  emptyStateSubtext: {
-    fontSize: 14,
-    opacity: 0.7,
-    textAlign: 'center',
-    marginBottom: 24,
-  },
-  createInvoiceButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+    color: '#007AFF',
   },
   modalContainer: {
     flex: 1,
+    padding: 16,
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 16,
+    marginBottom: 16,
+    paddingBottom: 16,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(0, 0, 0, 0.1)',
   },
   modalContent: {
     flex: 1,
-    padding: 16,
   },
   invoiceDetailCard: {
     backgroundColor: 'white',
@@ -613,57 +627,51 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
-  invoiceDetailHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 16,
-  },
-  invoiceDetailNumber: {
+  modalInvoiceNumber: {
     fontSize: 20,
     fontWeight: '700',
+    marginBottom: 16,
   },
-  invoiceDetailBadges: {
-    gap: 8,
+  modalCustomerName: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 4,
   },
-  customerInfo: {
+  modalDate: {
+    fontSize: 14,
+    opacity: 0.7,
+  },
+  modalAmountContainer: {
+    marginTop: 16,
     marginBottom: 20,
     paddingBottom: 16,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(0, 0, 0, 0.1)',
   },
-  customerDetailName: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  gstinText: {
+  modalAmountLabel: {
     fontSize: 14,
     opacity: 0.7,
-    marginBottom: 4,
+    marginBottom: 2,
   },
-  dateText: {
-    fontSize: 14,
-    opacity: 0.7,
+  modalAmountValue: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#007AFF',
   },
-  itemsSection: {
+  itemsList: {
     marginBottom: 20,
   },
-  sectionTitle: {
+  itemsTitle: {
     fontSize: 16,
     fontWeight: '600',
     marginBottom: 12,
   },
   itemRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
     paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0, 0, 0, 0.05)',
-  },
-  itemInfo: {
-    flex: 1,
+    paddingHorizontal: 12,
+    backgroundColor: 'rgba(0, 122, 255, 0.05)',
+    borderRadius: 8,
+    marginBottom: 8,
   },
   itemName: {
     fontSize: 14,
@@ -673,39 +681,5 @@ const styles = StyleSheet.create({
   itemDetails: {
     fontSize: 12,
     opacity: 0.7,
-  },
-  totalsSection: {
-    paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(0, 0, 0, 0.1)',
-  },
-  totalRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 6,
-  },
-  finalTotal: {
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(0, 0, 0, 0.1)',
-    marginTop: 8,
-    paddingTop: 12,
-  },
-  totalLabel: {
-    fontSize: 14,
-    opacity: 0.7,
-  },
-  totalValue: {
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  finalTotalLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  finalTotalValue: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#007AFF',
   },
 });

@@ -1,12 +1,10 @@
+import { NetworkStatus } from "@/components/NetworkStatus";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { Button } from "@/components/ui/Button";
-import type { InvoiceWithItems } from "@/db/db";
-import { ensureDatabaseInitialized } from "@/db/migrate";
-import { getAllInvoicesWithItems } from "@/services/invoiceService";
+import { useInvoices } from "@/hooks/useInvoices";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import { useEffect, useState } from "react";
 import {
   Alert,
   RefreshControl,
@@ -23,65 +21,14 @@ interface DashboardStats {
 }
 
 export default function Dashboard() {
-  const [stats, setStats] = useState<DashboardStats>({
-    totalInvoices: 0,
-    totalRevenue: 0,
-    pendingInvoices: 0,
-    syncedInvoices: 0,
-  });
-  const [recentInvoices, setRecentInvoices] = useState<InvoiceWithItems[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+  const {
+    invoices,
+    isLoading,
+    stats,
+    refreshInvoices
+  } = useInvoices();
 
-  useEffect(() => {
-    initializeAndLoadData();
-  }, []);
-
-  const initializeAndLoadData = async () => {
-    try {
-      await ensureDatabaseInitialized();
-      await loadDashboardData();
-    } catch (error) {
-      console.error("Error initializing dashboard:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadDashboardData = async () => {
-    try {
-      const invoices = await getAllInvoicesWithItems();
-
-      // Calculate stats
-      const totalInvoices = invoices.length;
-      const totalRevenue = invoices.reduce(
-        (sum, invoice) => sum + invoice.totalAmount,
-        0
-      );
-      const syncedInvoices = invoices.filter(
-        (invoice) => invoice.isSynced
-      ).length;
-      const pendingInvoices = totalInvoices - syncedInvoices;
-
-      setStats({
-        totalInvoices,
-        totalRevenue,
-        pendingInvoices,
-        syncedInvoices,
-      });
-
-      // Get recent invoices (last 3)
-      setRecentInvoices(invoices.slice(0, 3));
-    } catch (error) {
-      console.error("Error loading dashboard data:", error);
-    }
-  };
-
-  const onRefresh = async () => {
-    setRefreshing(true);
-    await loadDashboardData();
-    setRefreshing(false);
-  };
+  const recentInvoices = invoices.slice(0, 3);
 
   const handleCreateInvoice = () => {
     router.push("/(protected)/(tabs)/invoice");
@@ -143,7 +90,7 @@ export default function Dashboard() {
     }
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <ThemedView style={styles.container}>
         <View style={styles.loadingContainer}>
@@ -159,7 +106,7 @@ export default function Dashboard() {
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          <RefreshControl refreshing={isLoading} onRefresh={refreshInvoices} />
         }
       >
         {/* Quick Stats */}
@@ -198,6 +145,9 @@ export default function Dashboard() {
             <ThemedText style={styles.statLabel}>Synced</ThemedText>
           </View>
         </View>
+
+        {/* Network Status */}
+        <NetworkStatus />
 
         {/* Quick Actions */}
         <View style={styles.section}>

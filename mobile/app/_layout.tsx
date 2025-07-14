@@ -13,8 +13,10 @@ import "react-native-reanimated";
 
 import { tokenCache } from "@/cache";
 import { loadSavedLanguage } from "@/config/i18n";
+import { ensureDatabaseInitialized } from "@/db/migrate";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { useFonts } from "@/hooks/useFonts";
+import { syncService } from "@/services/syncService";
 import { checkOnboardingStatus } from "@/utils/onboarding";
 import ResetButtonDevOnly from "@/components/ResetButtonDevOnly";
 
@@ -37,9 +39,40 @@ export default function RootLayout() {
   const segments = useSegments();
   const [isOnboardingCompleted, setIsOnboardingCompleted] = useState<boolean | null>(null);
   const [appIsReady, setAppIsReady] = useState(false);
-  
+  const [databaseReady, setDatabaseReady] = useState(false);
+
   // Use the new font loading system
   const fontsLoaded = useFonts();
+
+  // Initialize database first
+  useEffect(() => {
+    const initializeDatabase = async () => {
+      try {
+        console.log("🔄 Initializing database...");
+        await ensureDatabaseInitialized();
+        console.log("✅ Database initialized successfully");
+        setDatabaseReady(true);
+      } catch (error) {
+        console.error("❌ Database initialization failed:", error);
+        // Still allow app to continue, but log the error
+        setDatabaseReady(true);
+      }
+    };
+
+    initializeDatabase();
+  }, []);
+
+  // Initialize sync service when database is ready
+  useEffect(() => {
+    if (databaseReady) {
+      syncService.initialize();
+
+      // Cleanup on unmount
+      return () => {
+        syncService.cleanup();
+      };
+    }
+  }, [databaseReady]);
 
   // Check onboarding status when app loads
   useEffect(() => {
@@ -55,10 +88,10 @@ export default function RootLayout() {
       }
     };
 
-    if (fontsLoaded) {
+    if (fontsLoaded && databaseReady) {
       initializeApp();
     }
-  }, [fontsLoaded]);
+  }, [fontsLoaded, databaseReady]);
 
   // Re-check onboarding status when segments change
   useEffect(() => {
@@ -90,15 +123,25 @@ export default function RootLayout() {
   // Hide splash screen when app is ready
   useEffect(() => {
     const hideSplashScreen = async () => {
-      if (appIsReady && fontsLoaded && isOnboardingCompleted !== null) {
+      if (
+        appIsReady &&
+        fontsLoaded &&
+        databaseReady &&
+        isOnboardingCompleted !== null
+      ) {
         await SplashScreen.hideAsync();
       }
     };
 
     hideSplashScreen();
-  }, [appIsReady, fontsLoaded, isOnboardingCompleted]);
+  }, [appIsReady, fontsLoaded, databaseReady, isOnboardingCompleted]);
 
-  if (!appIsReady || !fontsLoaded || isOnboardingCompleted === null) {
+  if (
+    !appIsReady ||
+    !fontsLoaded ||
+    !databaseReady ||
+    isOnboardingCompleted === null
+  ) {
     // Keep splash screen visible while loading
     return null;
   }
