@@ -18,7 +18,7 @@ import { useColorScheme } from "@/hooks/useColorScheme";
 import { useFonts } from "@/hooks/useFonts";
 import { syncService } from "@/services/syncService";
 import { checkOnboardingStatus } from "@/utils/onboarding";
-import ResetButtonDevOnly from "@/components/ResetButtonDevOnly";
+import { useAppStore } from "@/stores";
 
 const CLERK_PUBLISHABLE_KEY =
   process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY! || "";
@@ -37,9 +37,14 @@ export default function RootLayout() {
   const colorScheme = useColorScheme();
   const router = useRouter();
   const segments = useSegments();
-  const [isOnboardingCompleted, setIsOnboardingCompleted] = useState<boolean | null>(null);
+  const [isOnboardingCompleted, setIsOnboardingCompleted] = useState<
+    boolean | null
+  >(null);
   const [appIsReady, setAppIsReady] = useState(false);
   const [databaseReady, setDatabaseReady] = useState(false);
+
+  // Use app store for theme and initialization
+  const { isDarkMode, setInitialized, setLanguage } = useAppStore();
 
   // Use the new font loading system
   const fontsLoaded = useFonts();
@@ -78,9 +83,11 @@ export default function RootLayout() {
   useEffect(() => {
     const initializeApp = async () => {
       try {
-        await loadSavedLanguage();
+        const savedLanguage = await loadSavedLanguage();
+        setLanguage(savedLanguage);
         const completed = await checkOnboardingStatus();
         setIsOnboardingCompleted(completed);
+        setInitialized(true);
       } catch (error) {
         console.error("Error initializing app:", error);
       } finally {
@@ -91,7 +98,7 @@ export default function RootLayout() {
     if (fontsLoaded && databaseReady) {
       initializeApp();
     }
-  }, [fontsLoaded, databaseReady]);
+  }, [fontsLoaded, databaseReady, setLanguage, setInitialized]);
 
   // Re-check onboarding status when segments change
   useEffect(() => {
@@ -104,7 +111,7 @@ export default function RootLayout() {
     if (segments.length > 0) {
       recheckOnboarding();
     }
-  }, [segments[0]]); // Only trigger when the route group changes
+  }, [segments.length]); 
 
   useEffect(() => {
     if (isOnboardingCompleted === null) return;
@@ -118,7 +125,7 @@ export default function RootLayout() {
       // User has completed onboarding but is still in onboarding flow
       router.replace("/(auth)");
     }
-  }, [isOnboardingCompleted, segments]);
+  }, [isOnboardingCompleted, segments, router]);
 
   // Hide splash screen when app is ready
   useEffect(() => {
@@ -146,15 +153,20 @@ export default function RootLayout() {
     return null;
   }
 
+  // Use app store theme preference, with system fallback
+  const currentTheme = isDarkMode
+    ? DarkTheme
+    : colorScheme === "dark"
+      ? DarkTheme
+      : DefaultTheme;
+
   return (
     <ClerkProvider
       publishableKey={CLERK_PUBLISHABLE_KEY}
       tokenCache={tokenCache}
     >
       <ClerkLoaded>
-        <ThemeProvider
-          value={colorScheme === "dark" ? DarkTheme : DefaultTheme}
-        >
+        <ThemeProvider value={currentTheme}>
           <KeyboardAvoidingView
             style={{ flex: 1 }}
             behavior={Platform.OS === "ios" ? "padding" : "height"}

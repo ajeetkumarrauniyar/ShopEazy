@@ -3,7 +3,7 @@ import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { Button } from "@/components/ui/Button";
 import { TextInput } from "@/components/ui/TextInput";
-import { useSettingsStore } from "@/stores";
+import { useAppStore, useSettingsStore } from "@/stores";
 import { useAuth, useUser } from "@clerk/clerk-expo";
 import { Ionicons } from "@expo/vector-icons";
 import { useEffect } from "react";
@@ -12,6 +12,9 @@ import { Alert, ScrollView, StyleSheet, Switch, View } from "react-native";
 export default function Settings() {
   const { signOut } = useAuth();
   const { user } = useUser();
+
+  // Use both stores - appStore for global state, settingsStore for user preferences
+  const { isDarkMode, setDarkMode } = useAppStore();
 
   const {
     personalInfo,
@@ -33,6 +36,18 @@ export default function Settings() {
       });
     }
   }, [user, updatePersonalInfo]);
+
+  // Sync dark mode between stores
+  useEffect(() => {
+    if (appSettings.darkMode !== isDarkMode) {
+      setDarkMode(appSettings.darkMode);
+    }
+  }, [appSettings.darkMode, isDarkMode, setDarkMode]);
+
+  const handleDarkModeToggle = (value: boolean) => {
+    setDarkMode(value);
+    updateAppSettings({ darkMode: value });
+  };
 
   const handleSaveSettings = () => {
     Alert.alert("Success", "Settings saved successfully!");
@@ -63,239 +78,189 @@ export default function Settings() {
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
       >
-        {/* User Info */}
-        <View style={styles.section}>
-          <ThemedText type="subtitle" style={styles.sectionTitle}>
-            Account
-          </ThemedText>
-
-          <View style={styles.userInfo}>
-            <View style={styles.avatar}>
-              <Ionicons name="person" size={32} color="#007AFF" />
-            </View>
-            <View style={styles.userDetails}>
-              <ThemedText style={styles.userName}>
-                {`${user?.firstName} ${user?.lastName}` || "User Name"}
-              </ThemedText>
-              <ThemedText style={styles.userEmail}>
-                {user?.primaryEmailAddress?.emailAddress || "user@example.com"}
-              </ThemedText>
-            </View>
-          </View>
-        </View>
-
         {/* Personal Information */}
         <View style={styles.section}>
-          <ThemedText type="subtitle" style={styles.sectionTitle}>
+          <ThemedText style={styles.sectionTitle}>
             Personal Information
           </ThemedText>
 
           <TextInput
             label="First Name"
             value={personalInfo.firstName}
-            onChangeText={(firstName) => updatePersonalInfo({ firstName })}
-            placeholder="Enter your first name"
+            onChangeText={(text) => updatePersonalInfo({ firstName: text })}
             variant="outline"
-            containerStyle={styles.inputContainer}
+            containerStyle={styles.input}
           />
 
           <TextInput
             label="Last Name"
             value={personalInfo.lastName}
-            onChangeText={(lastName) => updatePersonalInfo({ lastName })}
-            placeholder="Enter your last name"
+            onChangeText={(text) => updatePersonalInfo({ lastName: text })}
             variant="outline"
-            containerStyle={styles.inputContainer}
+            containerStyle={styles.input}
           />
 
           <TextInput
             label="Phone Number"
             value={personalInfo.phoneNumber}
-            onChangeText={(phoneNumber) => updatePersonalInfo({ phoneNumber })}
-            placeholder="(555) 123-4567"
+            onChangeText={(text) => updatePersonalInfo({ phoneNumber: text })}
             variant="outline"
+            containerStyle={styles.input}
             keyboardType="phone-pad"
-            containerStyle={styles.inputContainer}
           />
         </View>
 
         {/* Business Information */}
         <View style={styles.section}>
-          <ThemedText type="subtitle" style={styles.sectionTitle}>
+          <ThemedText style={styles.sectionTitle}>
             Business Information
           </ThemedText>
 
           <TextInput
             label="Business Name"
             value={businessInfo.name}
-            onChangeText={(name) => updateBusinessInfo({ name })}
-            placeholder="Your Business Name"
+            onChangeText={(text) => updateBusinessInfo({ name: text })}
             variant="outline"
-            containerStyle={styles.inputContainer}
+            containerStyle={styles.input}
           />
 
           <TextInput
-            label="Business Email"
+            label="Email"
             value={businessInfo.email}
-            onChangeText={(email) => updateBusinessInfo({ email })}
-            placeholder="business@example.com"
+            onChangeText={(text) => updateBusinessInfo({ email: text })}
             variant="outline"
+            containerStyle={styles.input}
             keyboardType="email-address"
-            containerStyle={styles.inputContainer}
           />
 
           <TextInput
-            label="Business Phone"
+            label="Phone"
             value={businessInfo.phone}
-            onChangeText={(phone) => updateBusinessInfo({ phone })}
-            placeholder="(555) 123-4567"
+            onChangeText={(text) => updateBusinessInfo({ phone: text })}
             variant="outline"
+            containerStyle={styles.input}
             keyboardType="phone-pad"
-            containerStyle={styles.inputContainer}
           />
 
           <TextInput
-            label="Business Address"
+            label="Address"
             value={businessInfo.address}
-            onChangeText={(address) => updateBusinessInfo({ address })}
-            placeholder="Business address"
+            onChangeText={(text) => updateBusinessInfo({ address: text })}
             variant="outline"
+            containerStyle={styles.input}
             multiline
             numberOfLines={3}
-            containerStyle={styles.inputContainer}
-          />
-        </View>
-
-        {/* Invoice Settings */}
-        <View style={styles.section}>
-          <ThemedText type="subtitle" style={styles.sectionTitle}>
-            Invoice Settings
-          </ThemedText>
-
-          <TextInput
-            label="Invoice Prefix"
-            value={invoiceSettings.prefix}
-            onChangeText={(prefix) => updateInvoiceSettings({ prefix })}
-            placeholder="INV"
-            variant="outline"
-            containerStyle={styles.inputContainer}
-          />
-
-          <TextInput
-            label="Payment Terms"
-            value={invoiceSettings.paymentTerms}
-            onChangeText={(paymentTerms) => updateInvoiceSettings({ paymentTerms })}
-            placeholder="Net 30"
-            variant="outline"
-            containerStyle={styles.inputContainer}
           />
         </View>
 
         {/* App Settings */}
         <View style={styles.section}>
-          <ThemedText type="subtitle" style={styles.sectionTitle}>
-            App Settings
-          </ThemedText>
+          <ThemedText style={styles.sectionTitle}>App Settings</ThemedText>
 
           <View style={styles.settingItem}>
-            <View style={styles.settingLeft}>
+            <View style={styles.settingInfo}>
+              <Ionicons name="moon" size={20} color="#007AFF" />
+              <ThemedText style={styles.settingLabel}>Dark Mode</ThemedText>
+            </View>
+            <Switch
+              value={isDarkMode}
+              onValueChange={handleDarkModeToggle}
+              trackColor={{ false: "#E5E5EA", true: "#34C759" }}
+              thumbColor="#fff"
+            />
+          </View>
+
+          <View style={styles.settingItem}>
+            <View style={styles.settingInfo}>
               <Ionicons name="notifications" size={20} color="#007AFF" />
-              <View style={styles.settingText}>
-                <ThemedText style={styles.settingLabel}>Notifications</ThemedText>
-                <ThemedText style={styles.settingDescription}>
-                  Receive push notifications
-                </ThemedText>
-              </View>
+              <ThemedText style={styles.settingLabel}>Notifications</ThemedText>
             </View>
             <Switch
               value={appSettings.notifications}
-              onValueChange={(notifications) => updateAppSettings({ notifications })}
-              trackColor={{ false: "#767577", true: "#007AFF" }}
-              thumbColor="#f4f3f4"
+              onValueChange={(value) =>
+                updateAppSettings({ notifications: value })
+              }
+              trackColor={{ false: "#E5E5EA", true: "#34C759" }}
+              thumbColor="#fff"
             />
           </View>
 
           <View style={styles.settingItem}>
-            <View style={styles.settingLeft}>
+            <View style={styles.settingInfo}>
               <Ionicons name="save" size={20} color="#007AFF" />
-              <View style={styles.settingText}>
-                <ThemedText style={styles.settingLabel}>Auto Save</ThemedText>
-                <ThemedText style={styles.settingDescription}>
-                  Automatically save drafts
-                </ThemedText>
-              </View>
+              <ThemedText style={styles.settingLabel}>Auto Save</ThemedText>
             </View>
             <Switch
               value={appSettings.autoSave}
-              onValueChange={(autoSave) => updateAppSettings({ autoSave })}
-              trackColor={{ false: "#767577", true: "#007AFF" }}
-              thumbColor="#f4f3f4"
-            />
-          </View>
-
-          <View style={styles.settingItem}>
-            <View style={styles.settingLeft}>
-              <Ionicons name="moon" size={20} color="#007AFF" />
-              <View style={styles.settingText}>
-                <ThemedText style={styles.settingLabel}>Dark Mode</ThemedText>
-                <ThemedText style={styles.settingDescription}>
-                  Use dark theme
-                </ThemedText>
-              </View>
-            </View>
-            <Switch
-              value={appSettings.darkMode}
-              onValueChange={(darkMode) => updateAppSettings({ darkMode })}
-              trackColor={{ false: "#767577", true: "#007AFF" }}
-              thumbColor="#f4f3f4"
+              onValueChange={(value) => updateAppSettings({ autoSave: value })}
+              trackColor={{ false: "#E5E5EA", true: "#34C759" }}
+              thumbColor="#fff"
             />
           </View>
         </View>
 
-        {/* Data Management */}
+        {/* Invoice Settings */}
         <View style={styles.section}>
-          <ThemedText type="subtitle" style={styles.sectionTitle}>
-            Data Management
-          </ThemedText>
+          <ThemedText style={styles.sectionTitle}>Invoice Settings</ThemedText>
+
+          <TextInput
+            label="Invoice Prefix"
+            value={invoiceSettings.prefix}
+            onChangeText={(text) => updateInvoiceSettings({ prefix: text })}
+            variant="outline"
+            containerStyle={styles.input}
+          />
+
+          <TextInput
+            label="Payment Terms"
+            value={invoiceSettings.paymentTerms}
+            onChangeText={(text) =>
+              updateInvoiceSettings({ paymentTerms: text })
+            }
+            variant="outline"
+            containerStyle={styles.input}
+          />
+        </View>
+
+        {/* Actions */}
+        <View style={styles.section}>
+          <ThemedText style={styles.sectionTitle}>Data Management</ThemedText>
 
           <Button
             variant="outline"
             onPress={handleExportData}
-            style={styles.dataButton}
+            style={styles.actionButton}
           >
-            <Ionicons name="download" size={20} color="#007AFF" />
+            <Ionicons name="download-outline" size={18} color="#007AFF" />
             Export Data
           </Button>
 
           <Button
             variant="outline"
             onPress={handleBackupData}
-            style={styles.dataButton}
+            style={styles.actionButton}
           >
-            <Ionicons name="cloud-upload" size={20} color="#007AFF" />
+            <Ionicons name="cloud-upload-outline" size={18} color="#007AFF" />
             Backup Data
           </Button>
         </View>
 
-        {/* Save Settings */}
+        {/* Account Actions */}
         <View style={styles.section}>
           <Button
             variant="filled"
             onPress={handleSaveSettings}
-            style={styles.saveButton}
+            style={styles.primaryButton}
           >
             Save Settings
           </Button>
-        </View>
 
-        {/* Sign Out */}
-        <View style={styles.section}>
           <Button
             variant="outline"
             onPress={handleSignOut}
-            style={styles.signOutButton}
+            style={[styles.actionButton, styles.signOutButton]}
           >
-            <Ionicons name="log-out" size={20} color="#FF3B30" />
+            <Ionicons name="log-out-outline" size={18} color="#FF3B30" />
             Sign Out
           </Button>
         </View>
@@ -318,40 +283,12 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   sectionTitle: {
-    marginBottom: 16,
-    fontWeight: "600",
-  },
-  userInfo: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "rgba(0, 122, 255, 0.05)",
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-  },
-  avatar: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: "rgba(0, 122, 255, 0.1)",
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 16,
-  },
-  userDetails: {
-    flex: 1,
-  },
-  userName: {
     fontSize: 18,
     fontWeight: "600",
-    marginBottom: 4,
-  },
-  userEmail: {
-    fontSize: 14,
-    opacity: 0.7,
-  },
-  inputContainer: {
     marginBottom: 16,
+  },
+  input: {
+    marginBottom: 12,
   },
   settingItem: {
     flexDirection: "row",
@@ -359,33 +296,24 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: 12,
     paddingHorizontal: 16,
-    backgroundColor: "rgba(0, 122, 255, 0.05)",
+    backgroundColor: "#F8F9FA",
     borderRadius: 8,
     marginBottom: 8,
   },
-  settingLeft: {
+  settingInfo: {
     flexDirection: "row",
     alignItems: "center",
     flex: 1,
   },
-  settingText: {
-    marginLeft: 12,
-    flex: 1,
-  },
   settingLabel: {
+    marginLeft: 12,
     fontSize: 16,
-    fontWeight: "500",
-    marginBottom: 2,
   },
-  settingDescription: {
-    fontSize: 12,
-    opacity: 0.6,
-  },
-  dataButton: {
+  actionButton: {
     marginBottom: 12,
   },
-  saveButton: {
-    marginBottom: 12,
+  primaryButton: {
+    marginBottom: 16,
   },
   signOutButton: {
     borderColor: "#FF3B30",

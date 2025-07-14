@@ -2,12 +2,12 @@ import { ThemedText } from "@/components/ThemedText";
 import { useTheme } from "@/hooks/useTheme";
 import React from "react";
 import {
-    ActivityIndicator,
-    Pressable,
-    StyleSheet,
-    TextStyle,
-    View,
-    ViewStyle,
+  ActivityIndicator,
+  Pressable,
+  StyleSheet,
+  TextStyle,
+  View,
+  ViewStyle,
 } from "react-native";
 
 type ButtonVariant = "filled" | "outline" | "ghost";
@@ -20,7 +20,7 @@ interface ButtonProps {
   disabled?: boolean;
   loading?: boolean;
   children?: React.ReactNode;
-  style?: ViewStyle;
+  style?: ViewStyle | ViewStyle[]; 
   textStyle?: TextStyle;
 }
 
