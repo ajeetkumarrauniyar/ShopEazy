@@ -1,3 +1,4 @@
+import AuthTestComponent from "@/components/AuthTestComponent";
 import ResetButtonDevOnly from "@/components/ResetButtonDevOnly";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
@@ -265,7 +266,18 @@ export default function Settings() {
           </Button>
         </View>
 
-        <ResetButtonDevOnly />
+        {/* Development/Debug Section */}
+        {__DEV__ && (
+          <>
+            <ThemedText type="subtitle" style={styles.sectionTitle}>
+              🔧 Development Tools
+            </ThemedText>
+
+            <AuthTestComponent />
+
+            <ResetButtonDevOnly />
+          </>
+        )}
       </ScrollView>
     </ThemedView>
   );

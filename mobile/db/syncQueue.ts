@@ -1,5 +1,10 @@
 import { db } from "@/db/db";
-import { invoicesTable, syncQueue, type Invoice, type NewSyncQueueItem } from "@/db/schema";
+import {
+  invoicesTable,
+  syncQueue,
+  type Invoice,
+  type NewSyncQueueItem,
+} from "@/db/schema";
 import { eq, lte } from "drizzle-orm";
 
 const MAX_RETRY_COUNT = 3;
@@ -9,7 +14,7 @@ const RETRY_DELAY = 1000; // 1 second
 export async function addToSyncQueue(
   tableName: string,
   rowId: number,
-  action: 'INSERT' | 'UPDATE' | 'DELETE',
+  action: "INSERT" | "UPDATE" | "DELETE",
   payload: any
 ) {
   const queueItem: NewSyncQueueItem = {
@@ -38,7 +43,7 @@ export async function processSyncQueue() {
       await db.delete(syncQueue).where(eq(syncQueue.id, item.id));
       
       // Mark original record as synced if it's an invoice
-      if (item.tableName === 'invoices') {
+      if (item.tableName === "invoices") {
         await db
           .update(invoicesTable)
           .set({ isSynced: true })
@@ -56,13 +61,13 @@ async function processQueueItem(item: any) {
   const payload = JSON.parse(item.payload);
   
   switch (item.action) {
-    case 'INSERT':
+    case "INSERT":
       await syncInsert(item.tableName, payload);
       break;
-    case 'UPDATE':
+    case "UPDATE":
       await syncUpdate(item.tableName, item.rowId, payload);
       break;
-    case 'DELETE':
+    case "DELETE":
       await syncDelete(item.tableName, item.rowId);
       break;
     default:
@@ -82,43 +87,68 @@ async function handleSyncError(item: any, error: any) {
   
   // Apply exponential backoff delay
   const delayMs = RETRY_DELAY * Math.pow(2, item.retryCount);
-  await new Promise(resolve => setTimeout(resolve, delayMs));
-  
+  await new Promise((resolve) => setTimeout(resolve, delayMs));
+
   await db
     .update(syncQueue)
-    .set({ 
+    .set({
       retryCount: newRetryCount,
-      lastError: error.message || 'Unknown error'
+      lastError: error.message || "Unknown error",
     })
     .where(eq(syncQueue.id, item.id));
 }
 
-// Sync functions (replace with actual API calls to Express.js backend)
+// Sync functions for API calls to Express.js backend
 async function syncInsert(tableName: string, data: any) {
-  // Replace with actual API call to your Express.js backend
-  console.log(`Syncing INSERT for ${tableName}:`, data);
-  await simulateApiCall();
+  if (tableName === "invoices") {
+    const { syncInvoiceToServer } = await import(
+      "@/services/serverSyncService"
+    );
+
+    // Transform the data to match server expectations
+    const invoiceData = {
+      invoiceNumber: data.invoice.invoiceNumber,
+      invoiceDate: data.invoice.invoiceDate,
+      saleType: data.invoice.saleType,
+      customerName: data.invoice.customerName,
+      customerGstin: data.invoice.customerGstin,
+      customerStation: data.invoice.customerStation,
+      subtotal: data.invoice.subtotal,
+      taxAmount: data.invoice.taxAmount,
+      taxRate: data.invoice.taxRate,
+      totalAmount: data.invoice.totalAmount,
+      lineItems: data.items.map((item: any) => ({
+        productId: item.productId,
+        productName: item.productName,
+        quantity: item.quantity,
+        rate: item.rate,
+        amount: item.amount,
+      })),
+    };
+
+    await syncInvoiceToServer(invoiceData);
+  }
 }
 
 async function syncUpdate(tableName: string, id: number, data: any) {
-  // Replace with actual API call to your Express.js backend
+  //TODO: For now, treat updates as inserts
   console.log(`Syncing UPDATE for ${tableName} id ${id}:`, data);
-  await simulateApiCall();
+  await syncInsert(tableName, data);
 }
 
 async function syncDelete(tableName: string, id: number) {
-  // Replace with actual API call to your Express.js backend
+  //TODO: Replace with actual API call to your Express.js backend
   console.log(`Syncing DELETE for ${tableName} id ${id}`);
   await simulateApiCall();
 }
 
-// Simulate API call (replace with actual implementation)
+//TODO: Simulate API call (replace with actual implementation)
 async function simulateApiCall() {
   await new Promise((resolve, reject) => {
     setTimeout(() => {
       // Simulate occasional failures for testing
       if (Math.random() < 0.1) {
-        reject(new Error('Simulated network error'));
+        reject(new Error("Simulated network error"));
       } else {
         resolve(true);
       }
@@ -133,7 +163,7 @@ export async function syncToServer() {
 
 // Helper function to sync specific invoice
 export async function syncInvoice(invoice: Invoice) {
-  await addToSyncQueue('invoices', invoice.id!, 'INSERT', invoice);
+  await addToSyncQueue("invoices", invoice.id!, "INSERT", invoice);
 }
 
 // Clear failed items from queue (for maintenance)
@@ -144,11 +174,14 @@ export async function clearFailedSyncItems() {
 // Get sync queue status
 export async function getSyncQueueStatus() {
   const total = await db.select().from(syncQueue);
-  const failed = await db.select().from(syncQueue).where(lte(syncQueue.retryCount, MAX_RETRY_COUNT));
-  
+  const failed = await db
+    .select()
+    .from(syncQueue)
+    .where(lte(syncQueue.retryCount, MAX_RETRY_COUNT));
+
   return {
     totalItems: total.length,
     failedItems: failed.length,
-    pendingItems: total.length - failed.length
+    pendingItems: total.length - failed.length,
   };
 }
