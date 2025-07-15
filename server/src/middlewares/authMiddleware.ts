@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import { clerkClient } from "@clerk/clerk-sdk-node";
+import { verifyToken } from "@clerk/clerk-sdk-node";
 import { ApiError, logger } from "@/utils/index.ts";
 
 export interface AuthenticatedRequest extends Request {
@@ -9,15 +9,11 @@ export interface AuthenticatedRequest extends Request {
   };
 }
 
-interface JWTPayload {
-  sid?: string;
-  [key: string]: unknown;
-}
-
 export const requireAuth = async (req: Request, res: Response, next: NextFunction) => {
   try {
     // Get the Authorization header
     const authHeader = req.headers.authorization;
+
     logger.info(`Processing authentication request`);
 
     if (!authHeader) {
@@ -34,66 +30,59 @@ export const requireAuth = async (req: Request, res: Response, next: NextFunctio
       throw ApiError.unauthorized("Token is missing in Authorization header");
     }
 
-    let sessionId: string;
+    // Log the token (first part for security)
+    logger.info(`[Auth] Received JWT token: ${token.substring(0, 20)}...`);
 
     try {
-      // Split the token into parts
-      const tokenParts = token.split(".");
-
-      if (tokenParts.length !== 3) {
-        throw ApiError.unauthorized("Invalid JWT token format");
+      // Ensure we have the secret key
+      const secretKey = process.env.CLERK_SECRET_KEY;
+      if (!secretKey) {
+        throw ApiError.unauthorized("Clerk secret key not configured");
       }
 
-      // Decode the payload (second part)
-      let payload: JWTPayload;
-      try {
-        const base64Payload = tokenParts[1];
-        const decodedPayload = Buffer.from(base64Payload, "base64").toString();
-        payload = JSON.parse(decodedPayload);
-      } catch (decodeError) {
-        logger.error("Failed to decode JWT payload:", decodeError);
-        throw ApiError.unauthorized("Invalid token format - could not decode payload");
+      // Use Clerk's modern networkless JWT verification
+      const payload = await verifyToken(token, {
+        secretKey,
+        issuer: (iss) => iss.startsWith("https://") && iss.includes("clerk.accounts.dev"),
+      });
+
+      logger.info(
+        `[Auth] Successfully verified JWT payload: ${JSON.stringify({
+          ...payload,
+          sub: payload.sub ? `${String(payload.sub).substring(0, 8)}...` : undefined,
+        })}`,
+      );
+
+      // Extract user ID and session ID from the verified payload
+      if (!payload.sub || typeof payload.sub !== "string") {
+        throw ApiError.unauthorized("Invalid token - missing or invalid user ID");
       }
 
-      // Extract and validate session ID
       if (!payload.sid || typeof payload.sid !== "string") {
         throw ApiError.unauthorized("Invalid token - missing or invalid session ID");
       }
 
-      sessionId = payload.sid;
-    } catch (tokenError) {
-      if (tokenError instanceof ApiError) {
-        throw tokenError;
-      }
-      logger.error("Token processing error:", tokenError);
-      throw ApiError.unauthorized("Failed to process authentication token");
-    }
-
-    try {
-      // Verify the session with Clerk
-      const session = await clerkClient.sessions.verifySession(sessionId, token);
-
-      if (!session.userId) {
-        throw ApiError.unauthorized("Invalid session - user ID not found");
-      }
-
       // Add the authenticated user info to the request
       (req as AuthenticatedRequest).auth = {
-        userId: session.userId,
-        sessionId: session.id,
+        userId: payload.sub,
+        sessionId: payload.sid,
       };
 
-      logger.info(`Successfully authenticated user: ${session.userId}`);
+      logger.info(`[Auth] Successfully authenticated user: ${payload.sub}`);
       next();
-    } catch (clerkError) {
-      logger.error("Clerk session verification failed:", clerkError);
+    } catch (verificationError) {
+      logger.error("JWT verification failed:", verificationError);
 
-      // Handle specific Clerk errors if needed
-      if ((clerkError as Error).message?.includes("expired")) {
-        throw ApiError.unauthorized("Session has expired");
+      // Handle specific verification errors
+      if ((verificationError as Error).message?.includes("expired")) {
+        throw ApiError.unauthorized("Token has expired");
       }
 
-      throw ApiError.unauthorized("Session verification failed");
+      if ((verificationError as Error).message?.includes("invalid")) {
+        throw ApiError.unauthorized("Invalid token");
+      }
+
+      throw ApiError.unauthorized("Token verification failed");
     }
   } catch (error) {
     // Log the full error for debugging but send a sanitized response

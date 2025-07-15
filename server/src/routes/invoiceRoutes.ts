@@ -1,10 +1,13 @@
 import express from "express";
-import { createInvoice } from "@/controllers/index.ts";
+import { createInvoice, syncMobileInvoice, syncMobileBatch } from "@/controllers/index.ts";
 import { requireAuth } from "@/middlewares/index.ts";
 
 const router = express.Router();
 
-// Protected route - requires authentication
 router.post("/", requireAuth, createInvoice);
+
+// Mobile sync routes
+router.post("/mobile/sync", requireAuth, syncMobileInvoice);
+router.post("/mobile/sync/batch", requireAuth, syncMobileBatch);
 
 export default router;

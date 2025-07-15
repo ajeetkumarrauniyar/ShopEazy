@@ -23,7 +23,7 @@ export const createInvoice = asyncHandler<AuthenticatedRequest>(async (req: Auth
   } = req.body as InvoiceRequestBody;
 
   // Validate invoice type
-  if (!Object.values(invoiceType).includes(invoiceType)) {
+  if (!Object.values(InvoiceType).includes(invoiceType)) {
     throw ApiError.badRequest(`Invalid invoice type. Must be one of: ${Object.values(InvoiceType).join(", ")}`);
   }
 

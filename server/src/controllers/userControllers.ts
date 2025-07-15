@@ -20,8 +20,8 @@ export const createUser = asyncHandler(async (req: Request, res: Response) => {
   }
 
   const newUser = await prisma.user.create({
-    data: { name, email, password },
-  }); // In a real application, you should hash the password before saving it
+    data: { email, password },
+  }); //TODO: In a real application, you should hash the password before saving it
 
   if (!newUser) {
     throw new ApiError(500, "Failed to create user");

@@ -14,7 +14,7 @@ const app = express();
 // CORS configuration
 const corsOptions = {
   origin: env.CORS_ORIGIN,
-  methods: "GET,POST,DELETE",
+  methods: "GET,POST,PUT, DELETE, OPTIONS",
   allowedHeaders: "Content-Type,Authorization",
   preflightContinue: false,
   optionsSuccessStatus: 204,

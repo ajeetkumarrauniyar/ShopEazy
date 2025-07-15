@@ -9,16 +9,27 @@ datasource db {
 
 model User {
   id          String   @id @default(cuid())
+  clerkId     String   @unique // Clerk user ID
   email       String   @unique
   password    String
   firstName   String?
   lastName    String?
   phoneNumber String?  @unique
+  gstinNumber String?  // GST identification number
+  businessName String?
+  businessAddress String?
+  stateCode   String?  // For GST state code
+  
+  // Sync tracking
+  lastSyncAt  DateTime?
+  isActive    Boolean  @default(true)
+  
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt()
 
   salesInvoices    Invoice[]  @relation("SalesInvoices")
   purchaseInvoices Invoice[]  @relation("PurchaseInvoices")
+  syncLogs         SyncLog[]
 }
 
 model ItemMaster {
@@ -39,6 +50,12 @@ model ItemMaster {
   // Inventory tracking
   currentStock    Int       @default(0)
   minimumStock    Int       @default(0)
+  
+  // Sync fields
+  localId         String?   // Local WatermelonDB ID
+  lastModified    BigInt    @default(0) // Timestamp for sync
+  isDeleted       Boolean   @default(false)
+  version         Int       @default(1) // For conflict resolution
   
   // Timestamps
   createdAt       DateTime  @default(now())
@@ -94,6 +111,14 @@ model Invoice {
   notes             String?
   termsAndConditions String?
   
+  // Sync fields for offline-first
+  localId           String?   // Local WatermelonDB ID
+  lastModified      BigInt    @default(0) // Timestamp for sync
+  isDeleted         Boolean   @default(false)
+  isSynced          Boolean   @default(false)
+  syncStatus        SyncStatus @default(PENDING)
+  version           Int       @default(1) // For conflict resolution
+  
   // Timestamps
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt()
@@ -131,9 +156,53 @@ model InvoiceItem {
   igstPercentage  Decimal   @db.Decimal(5, 2)
   igstAmount      Decimal   @db.Decimal(10, 2)
   
+  // Sync fields
+  localId         String?   // Local WatermelonDB ID
+  lastModified    BigInt    @default(0)
+  isDeleted       Boolean   @default(false)
+  version         Int       @default(1)
+  
   // Relations
   Invoice         Invoice   @relation(fields: [invoiceId], references: [id])
   invoiceId       String
+}
+
+// Sync tracking table for monitoring sync operations
+model SyncLog {
+  id          String     @id @default(cuid())
+  userId      String
+  user        User       @relation(fields: [userId], references: [id])
+  
+  entityType  SyncEntityType
+  entityId    String
+  operation   SyncOperation
+  status      SyncStatus
+  error       String?
+  conflictData Json?     // Store conflict data for resolution
+  
+  lastSyncAt  DateTime  @default(now())
+  retryCount  Int       @default(0)
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt()
+  
+  @@index([userId, entityType, status])
+}
+
+// Configuration for MARG export formats
+model MargExportConfig {
+  id          String    @id @default(cuid())
+  userId      String    @unique
+  
+  // MARG-specific configurations
+  margClientCode String?
+  exportFormat   String @default("CSV") // CSV, XML, JSON
+  
+  // Field mappings for MARG compatibility
+  fieldMappings  Json
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt()
 }
 
 enum InvoiceType {
@@ -163,4 +232,24 @@ enum PaymentStatus {
   PARTIAL
   COMPLETED
   REFUNDED
+}
+
+enum SyncStatus {
+  PENDING
+  SUCCESS
+  ERROR
+  CONFLICT
+}
+
+enum SyncOperation {
+  CREATE
+  UPDATE
+  DELETE
+}
+
+enum SyncEntityType {
+  INVOICE
+  INVOICE_ITEM
+  ITEM_MASTER
+  USER
 }

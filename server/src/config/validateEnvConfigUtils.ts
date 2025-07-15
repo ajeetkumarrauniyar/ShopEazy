@@ -20,6 +20,7 @@ interface Env {
   API_URL: string;
   CORS_ORIGIN: string;
   DATABASE_URL: string;
+  CLERK_SECRET_KEY: string;
   // Add other required environment variables here
 }
 
@@ -29,6 +30,7 @@ export const env: Env = {
   API_URL: process.env.API_URL || "http://localhost:7000",
   CORS_ORIGIN: process.env.CORS_ORIGIN || "http://localhost:3000",
   DATABASE_URL: process.env.DATABASE_URL || "",
+  CLERK_SECRET_KEY: process.env.CLERK_SECRET_KEY || "",
   // Add other environment variables here
 };
 
@@ -41,6 +43,7 @@ export function validateEnv(): void {
     "PORT",
     "NODE_ENV",
     "DATABASE_URL",
+    "CLERK_SECRET_KEY",
     // Add other required env var
   ];
 
