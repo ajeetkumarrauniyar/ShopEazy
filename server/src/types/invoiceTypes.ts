@@ -29,3 +29,52 @@ export interface InvoiceRequestBody {
   paymentMode?: PaymentMode;
   paymentStatus?: PaymentStatus;
 }
+
+// Mobile App Sync Types
+export interface MobileInvoiceLineItem {
+  productId?: string;
+  productName: string;
+  quantity: number;
+  rate: number;
+  amount: number;
+}
+
+export interface MobileInvoiceData {
+  invoiceNumber: string;
+  invoiceDate: string;
+  saleType: "B2C" | "B2B";
+  customerName: string;
+  customerGstin?: string;
+  customerStation?: string;
+  subtotal: number;
+  taxAmount: number;
+  taxRate: number;
+  totalAmount: number;
+  lineItems: MobileInvoiceLineItem[];
+}
+
+export interface MobileSyncRequest {
+  invoice: MobileInvoiceData;
+  items: MobileInvoiceLineItem[];
+}
+
+export interface MobileSyncQueueItem {
+  tableName: string;
+  rowId: number;
+  action: "INSERT" | "UPDATE" | "DELETE";
+  payload: string; // JSON stringified MobileSyncRequest
+}
+
+export interface MobileSyncBatchRequest {
+  operations: MobileSyncQueueItem[];
+}
+
+export interface MobileSyncResponse {
+  success: boolean;
+  message: string;
+  syncedItems: number;
+  errors: Array<{
+    operation: MobileSyncQueueItem;
+    error: string;
+  }>;
+}
