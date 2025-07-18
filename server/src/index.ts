@@ -5,11 +5,11 @@ import { app, prisma, env, logger } from "./app.ts";
 const port = parseInt(env.PORT);
 const server = app.listen(port, () => {
   const addr = server.address() as AddressInfo;
-  console.log(`\n==============================================`);
+  logger.info(`\n==============================================`);
   logger.info(`🚀 Server started successfully on ${addr.address}:${addr.port}`);
   logger.info(`💻 Running on PORT: ${env.PORT}`);
   logger.info(`🌐 Server running on ${env.API_URL}`);
-  console.log(`==============================================`);
+  logger.info(`==============================================`);
 });
 
 // Handle server error
@@ -22,14 +22,14 @@ server.on("error", (err: NodeJS.ErrnoException) => {
 prisma
   .$connect()
   .then(() => {
-    console.log(`\n==============================================`);
+    logger.info(`\n==============================================`);
     logger.info("✅ Connected to database successfully");
-    console.log(`==============================================`);
+    logger.info(`==============================================`);
   })
   .catch((error) => {
     logger.error(`❌ Database connection error: ${error.message}`);
     logger.warn("⚠️ App starting without database connection");
-    console.log(`==============================================`);
+    logger.info(`==============================================`);
   });
 
 // Graceful shutdown

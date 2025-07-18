@@ -2,7 +2,7 @@ import express from "express";
 import cors from "cors";
 import config from "~/config.json" with { type: "json" };
 import { env, validateEnv, prisma } from "@/config/index.ts";
-import { logger, loggerMiddleware, something } from "@/utils/index.ts";
+import { errorHandler, logger, loggerMiddleware, notFoundHandler, something } from "@/utils/index.ts";
 import routes from "@/routes/index.js";
 
 // Validate environment variables
@@ -36,9 +36,9 @@ app.get("/", (req, res) => {
 app.use("/api", routes);
 
 // Error handling middleware
-// app.use(errorHandler);
+app.use(errorHandler);
 
 // Not found middleware
-// app.use(notFoundHandler());
+app.use(notFoundHandler);
 
 export { app, prisma, env, logger };
