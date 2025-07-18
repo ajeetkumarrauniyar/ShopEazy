@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import { verifyToken } from "@clerk/clerk-sdk-node";
+import { verifyToken } from "@clerk/express";
 import { ApiError, logger } from "@/utils/index.ts";
 
 export interface AuthenticatedRequest extends Request {
@@ -34,17 +34,18 @@ export const requireAuth = async (req: Request, res: Response, next: NextFunctio
     logger.info(`[Auth] Received JWT token: ${token.substring(0, 20)}...`);
 
     try {
-      // Ensure we have the secret key
       const secretKey = process.env.CLERK_SECRET_KEY;
       if (!secretKey) {
         throw ApiError.unauthorized("Clerk secret key not configured");
       }
 
-      // Use Clerk's modern networkless JWT verification
-      const payload = await verifyToken(token, {
-        secretKey,
-        issuer: (iss) => iss.startsWith("https://") && iss.includes("clerk.accounts.dev"),
-      });
+      // Networkless JWT verification
+      const payload = await verifyToken(token, { secretKey });
+
+      // Checking issuer after verification:
+      if (!payload.iss || !payload.iss.startsWith("https://") || !payload.iss.includes("clerk.accounts.dev")) {
+        throw ApiError.unauthorized("Invalid token issuer");
+      }
 
       logger.info(
         `[Auth] Successfully verified JWT payload: ${JSON.stringify({
