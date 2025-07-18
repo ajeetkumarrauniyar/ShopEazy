@@ -118,3 +118,6 @@ server/.prod.env
 server/app.log
 server/.env.prod
 server/.env.dev
+
+backups/**
+docs/**
