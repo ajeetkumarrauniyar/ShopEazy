@@ -1,31 +1,80 @@
 import { Request, Response } from "express";
-import { prisma } from "@/config/index.ts";
-import { asyncHandler, ApiResponse, ApiError } from "@/utils/index.ts";
+import { asyncHandler, ApiResponse, ApiError, logger } from "@/utils/index.ts";
+import { userService } from "@/services/index.ts";
 
-export const createUser = asyncHandler(async (req: Request, res: Response) => {
-  const { name, email, password } = req.body as { name: string; email: string; password: string };
+/**
+ * Get or create user by Clerk ID (for mobile sync)
+ */
+export const getOrCreateUserByClerkId = asyncHandler(async (req: Request, res: Response) => {
+  const { clerkId } = req.params;
 
-  // Validation
-  if (!name || !email) {
-    throw new ApiError(400, "Name and Email are required");
-  }
-  if (password && password.length < 6) {
-    throw new ApiError(400, "Password must be at least 6 characters");
-  }
-
-  const existingUser = await prisma.user.findUnique({ where: { email } });
-
-  if (existingUser) {
-    throw new ApiError(409, "User with this email already exists");
+  if (!clerkId) {
+    throw ApiError.badRequest("Clerk ID is required");
   }
 
-  const newUser = await prisma.user.create({
-    data: { email, password },
-  }); //TODO: In a real application, you should hash the password before saving it
+  try {
+    const user = await userService.getOrCreateUser(clerkId);
+    return ApiResponse.success(res, user, "User retrieved/created successfully");
+  } catch (error) {
+    logger.error("Error in getOrCreateUserByClerkId:", error);
+    throw ApiError.from(error, "Failed to get/create user");
+  }
+});
 
-  if (!newUser) {
-    throw new ApiError(500, "Failed to create user");
+/**
+ * Get user by Clerk ID
+ */
+export const getUserByClerkId = asyncHandler(async (req: Request, res: Response) => {
+  const { clerkId } = req.params;
+
+  if (!clerkId) {
+    throw ApiError.badRequest("Clerk ID is required");
   }
 
-  ApiResponse.success(res, newUser, "User created successfully", 201);
+  const user = await userService.findUserByClerkId(clerkId);
+
+  if (!user) {
+    throw ApiError.notFound("User not found");
+  }
+
+  return ApiResponse.success(res, user, "User found successfully");
+});
+
+/**
+ * Get all users
+ */
+export const getAllUsers = asyncHandler(async (req: Request, res: Response) => {
+  try {
+    const users = await userService.findAllUsers();
+    logger.info("Fetched all users");
+    return ApiResponse.success(res, users, "Users retrieved successfully");
+  } catch (error) {
+    logger.error("Error fetching all users:", error);
+    throw ApiError.from(error, "Failed to retrieve users");
+  }
+});
+
+/**
+ * Get user by database ID
+ */
+export const getUserById = asyncHandler(async (req: Request, res: Response) => {
+  const { id } = req.params;
+
+  if (!id) {
+    throw ApiError.badRequest("User ID is required");
+  }
+
+  try {
+    const user = await userService.findUserById(id);
+
+    if (!user) {
+      throw ApiError.notFound("User not found");
+    }
+
+    logger.info(`Fetched user with ID: ${id}`);
+    return ApiResponse.success(res, user, "User retrieved successfully");
+  } catch (error) {
+    logger.error(`Error fetching user by id ${id}:`, error);
+    throw ApiError.from(error, "Failed to retrieve user");
+  }
 });

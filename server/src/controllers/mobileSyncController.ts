@@ -9,12 +9,13 @@ import {
   MobileInvoiceData,
 } from "@/types/invoiceTypes.ts";
 import { InvoiceType, PaymentMode, PaymentStatus } from "@prisma/client";
+import { userService } from "@/services/index.ts";
 
 /**
  * Sync single invoice from mobile app
  */
 export const syncMobileInvoice = asyncHandler<AuthenticatedRequest>(async (req: AuthenticatedRequest) => {
-  const userId = req.auth.userId;
+  const clerkId = req.auth.userId;
   const mobileInvoiceData: MobileInvoiceData = req.body;
 
   // Validate required fields
@@ -23,8 +24,11 @@ export const syncMobileInvoice = asyncHandler<AuthenticatedRequest>(async (req: 
   }
 
   try {
+    // Get or create user by Clerk ID
+    const user = await userService.getOrCreateUser(clerkId);
+
     // Transform mobile invoice data to server format
-    const serverInvoiceData = transformMobileToServerFormat(mobileInvoiceData, userId);
+    const serverInvoiceData = transformMobileToServerFormat(mobileInvoiceData, user.id);
 
     // Create the invoice with items in a transaction
     const invoice = await createInvoiceFromMobileData(serverInvoiceData);
@@ -47,7 +51,7 @@ export const syncMobileInvoice = asyncHandler<AuthenticatedRequest>(async (req: 
  * Batch sync multiple operations from mobile app sync queue
  */
 export const syncMobileBatch = asyncHandler<AuthenticatedRequest>(async (req: AuthenticatedRequest) => {
-  const userId = req.auth.userId;
+  const clerkId = req.auth.userId;
   const { operations }: MobileSyncBatchRequest = req.body;
 
   if (!operations || !Array.isArray(operations) || operations.length === 0) {
@@ -61,10 +65,13 @@ export const syncMobileBatch = asyncHandler<AuthenticatedRequest>(async (req: Au
     errors: [],
   };
 
+  // Get or create user by Clerk ID
+  const user = await userService.getOrCreateUser(clerkId);
+
   // Process each operation
   for (const operation of operations) {
     try {
-      await processSyncOperation(operation, userId);
+      await processSyncOperation(operation, user.id);
       response.syncedItems++;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
@@ -102,7 +109,7 @@ async function processSyncOperation(operation: MobileSyncQueueItem, userId: stri
       await handleMobileInvoiceUpdate(operation.rowId, payload.invoice, userId);
       break;
     case "DELETE":
-      await handleMobileInvoiceDelete(operation.rowId, userId);
+      await handleMobileInvoiceDelete(operation.rowId);
       break;
     default:
       throw new Error(`Unknown sync action: ${operation.action}`);
@@ -147,7 +154,7 @@ async function handleMobileInvoiceUpdate(
 /**
  * Handle mobile invoice delete operation
  */
-async function handleMobileInvoiceDelete(mobileInvoiceId: number, userId: string): Promise<void> {
+async function handleMobileInvoiceDelete(mobileInvoiceId: number): Promise<void> {
   //TODO: Since we don't have direct ID mapping, we might need additional logic here
   // For now, we'll log the operation
   logger.info(`Processing delete for mobile invoice ID ${mobileInvoiceId} - not implemented`);
@@ -197,7 +204,40 @@ function transformMobileToServerFormat(mobileInvoice: MobileInvoiceData, userId:
 /**
  * Create invoice from transformed mobile data
  */
-async function createInvoiceFromMobileData(invoiceData: any) {
+async function createInvoiceFromMobileData(invoiceData: {
+  invoiceNumber: string;
+  invoiceType: InvoiceType;
+  invoiceDate: Date;
+  dueDate: Date;
+  partyName: string;
+  partyGstin: string | null;
+  billingAddress: string;
+  shippingAddress: string | null;
+  partyState: string;
+  stateCode: string;
+  subTotal: number;
+  totalGstAmount: number;
+  totalAmount: number;
+  roundOff: number;
+  paymentMode: PaymentMode;
+  paymentStatus: PaymentStatus;
+  sellerId: string;
+  items: Array<{
+    serialNumber: number;
+    productName: string;
+    quantity: number;
+    unitPrice: number;
+    amount: number;
+    unit: string;
+    hsnCode: string;
+    cgstPercentage: number;
+    cgstAmount: number;
+    sgstPercentage: number;
+    sgstAmount: number;
+    igstPercentage: number;
+    igstAmount: number;
+  }>;
+}) {
   return await prisma.$transaction(async (tx) => {
     // Create or find the item master entries first
     const processedItems = [];
