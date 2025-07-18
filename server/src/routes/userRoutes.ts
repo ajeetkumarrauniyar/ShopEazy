@@ -1,38 +1,18 @@
 import express from "express";
-import { createUser } from "@/controllers/index.ts";
-import { logger } from "@/utils/index.ts";
-import { prisma } from "@/config/index.ts";
-import { asyncHandler } from "@/utils/asyncHandlerUtil.ts";
-import { Request, Response } from "express";
+import { getUserByClerkId, getOrCreateUserByClerkId, getAllUsers, getUserById } from "@/controllers/index.ts";
 
 const router = express.Router();
 
-router.post("/", createUser);
+// Get user by Clerk ID
+router.get("/clerk/:clerkId", getUserByClerkId);
 
-router.get(
-  "/",
-  asyncHandler(async () => {
-    const allUsers = await prisma.user.findMany();
-    logger.info("Fetched all users");
-    return allUsers;
-  }),
-);
+// Get or create user by Clerk ID (for mobile sync)
+router.post("/clerk/:clerkId/sync", getOrCreateUserByClerkId);
 
-router.get(
-  "/:id",
-  asyncHandler(async (req: Request, res: Response) => {
-    const userId = req.params.id;
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-    });
-    if (!user) {
-      logger.warn(`User with ID ${userId} not found`);
-      res.status(404);
-      throw new Error("User not found");
-    }
-    logger.info(`Fetched user with ID: ${userId}`);
-    return user;
-  }),
-);
+// Get all users
+router.get("/", getAllUsers);
+
+// Get user by ID
+router.get("/:id", getUserById);
 
 export default router;
