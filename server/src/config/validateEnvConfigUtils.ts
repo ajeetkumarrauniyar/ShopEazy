@@ -21,6 +21,8 @@ interface Env {
   CORS_ORIGIN: string;
   DATABASE_URL: string;
   CLERK_SECRET_KEY: string;
+  CLERK_PUBLISHABLE_KEY: string;
+  CLERK_WEBHOOK_SECRET_KEY: string;
   // Add other required environment variables here
 }
 
@@ -31,6 +33,8 @@ export const env: Env = {
   CORS_ORIGIN: process.env.CORS_ORIGIN || "http://localhost:3000",
   DATABASE_URL: process.env.DATABASE_URL || "",
   CLERK_SECRET_KEY: process.env.CLERK_SECRET_KEY || "",
+  CLERK_PUBLISHABLE_KEY: process.env.CLERK_PUBLISHABLE_KEY || "",
+  CLERK_WEBHOOK_SECRET_KEY: process.env.CLERK_WEBHOOK_SECRET_KEY || "",
   // Add other environment variables here
 };
 
@@ -44,6 +48,8 @@ export function validateEnv(): void {
     "NODE_ENV",
     "DATABASE_URL",
     "CLERK_SECRET_KEY",
+    "CLERK_PUBLISHABLE_KEY",
+    "CLERK_WEBHOOK_SECRET_KEY",
     // Add other required env var
   ];
 
